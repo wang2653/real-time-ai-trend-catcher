@@ -1697,31 +1697,3 @@
     width: 100vw;
   }
 }
-
-/* ====================================
-   Deploy FAB (one-click deploy)
-   ==================================== */
-.deployButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-  white-space: nowrap;
-}
-
-.deployButton:hover {
-  border-color: #94a3b8;
-  background: #f8fafc;
-  color: #1e293b;
-}

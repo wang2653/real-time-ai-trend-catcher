@@ -4,7 +4,10 @@ import path from 'node:path';
 // disable TLS validation to bypass self-signed / untrusted SSL certificate errors
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-const BASE_URL = 'https://real-time-ai-trend-catcher.edgeone.dev';
+let BASE_URL = process.argv[2] || 'https://real-time-ai-trend-catcher.edgeone.dev';
+if (BASE_URL.endsWith('/')) {
+  BASE_URL = BASE_URL.slice(0, -1);
+}
 const DATA_DIR = path.join(process.cwd(), 'data', 'ai_trends');
 
 async function ensureDir(dir) {
