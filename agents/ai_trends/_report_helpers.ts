@@ -1,4 +1,4 @@
-import type { TrendGroup, TrendReport, TrendSourceItem } from './_types.js';
+import type { TrendGroup, TrendReport, TrendSourceItem } from './_pipeline_types.js';
 
 export function utcNow(): string {
   return new Date().toISOString();

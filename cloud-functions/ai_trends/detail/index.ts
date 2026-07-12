@@ -3,8 +3,8 @@
  * Returns a specific report by runId.
  */
 
-import { jsonResponse, readJsonBody } from '../../_http';
-import { getStore, loadReportByRunId } from '../../_store';
+import { jsonResponse, readJsonBody } from '../../_cf_http_helpers';
+import { getStore, loadReportByRunId } from '../../_cf_store_access';
 
 export async function onRequestPost(context: any): Promise<Response> {
   const body = await readJsonBody(context);

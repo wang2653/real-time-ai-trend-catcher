@@ -13,7 +13,7 @@
  * The target conversation_id is passed only via request body.
  */
 
-import { getBody, jsonResponse } from './_http.js';
+import { getBody, jsonResponse } from './_http_helpers.js';
 
 export async function onRequest(context: any): Promise<Response> {
   const body = getBody(context);

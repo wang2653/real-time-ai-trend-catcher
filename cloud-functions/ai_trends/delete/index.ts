@@ -3,8 +3,8 @@
  * Deletes a report by runId.
  */
 
-import { jsonResponse, readJsonBody } from '../../_http';
-import { getStore, deleteReport } from '../../_store';
+import { jsonResponse, readJsonBody } from '../../_cf_http_helpers';
+import { getStore, deleteReport } from '../../_cf_store_access';
 
 export async function onRequestPost(context: any): Promise<Response> {
   const body = await readJsonBody(context);

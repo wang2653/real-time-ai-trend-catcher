@@ -1,4 +1,4 @@
-import type { TrendSourceItem } from './_types.js';
+import type { TrendSourceItem } from './_pipeline_types.js';
 
 export const AI_KEYWORDS = [
   'ai',

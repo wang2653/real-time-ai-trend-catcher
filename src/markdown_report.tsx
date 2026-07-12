@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import styles from './App.module.css';
+import styles from './trends_dashboard.module.css';
 
 interface MarkdownReportProps {
   markdown: string;

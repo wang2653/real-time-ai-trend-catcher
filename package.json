@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "tsc -p tsconfig.test.json && node .test-build/tests/report-pipeline.test.js",
+    "test": "tsc -p tsconfig.test.json && node .test-build/tests/report_pipeline_test.js",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.agent.json && vite build",
     "preview": "vite preview"
   },

@@ -1,4 +1,4 @@
-import { normalizeReport } from './reportModel';
+import { normalizeReport } from './report_model';
 
 const normalized = normalizeReport({ status: 'empty', reportMarkdown: '# Empty' });
 

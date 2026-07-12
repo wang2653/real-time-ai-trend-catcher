@@ -2,8 +2,8 @@ import { Agent, OpenAIChatCompletionsModel, run, tool } from '@openai/agents';
 import { OpenAI } from 'openai';
 import { z } from 'zod';
 
-import type { TrendLibraryItem } from './_items.js';
-import { generateFallbackReport, utcNow } from './_report.js';
+import type { TrendLibraryItem } from './_item_library.js';
+import { generateFallbackReport, utcNow } from './_report_helpers.js';
 import type {
   CuratorOutput,
   FinishedReport,
@@ -12,20 +12,24 @@ import type {
   TrendGroup,
   TrendReport,
   TrendSourceItem,
-} from './_types.js';
+} from './_pipeline_types.js';
 import {
   ComparePeriodsParamsSchema,
   GetHistoryItemsParamsSchema,
-} from './_types.js';
+} from './_pipeline_types.js';
 
 // ── OpenAI client setup (via AI Gateway) ──────────────────────────
 
-function createModel(env: Record<string, string | undefined>): OpenAIChatCompletionsModel {
-  const client = new OpenAI({
+export function buildOpenAIClientOptions(env: Record<string, string | undefined>) {
+  return {
     apiKey: env.LLM_API_KEY || env.AI_GATEWAY_API_KEY || env.OPENAI_API_KEY,
     baseURL: env.LLM_BASE_URL || env.AI_GATEWAY_BASE_URL || env.OPENAI_BASE_URL,
     timeout: 600000,
-  });
+  };
+}
+
+function createModel(env: Record<string, string | undefined>): OpenAIChatCompletionsModel {
+  const client = new OpenAI(buildOpenAIClientOptions(env));
   const modelName = env.LLM_MODEL || env.AI_GATEWAY_MODEL || '@makers/minimax-m2.7';
   return new OpenAIChatCompletionsModel(client as any, modelName);
 }

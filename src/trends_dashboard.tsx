@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, SVGProps } from 'react';
-import { fetchHistory, fetchLatest, fetchReportDetail, runReportSSE, stopReport, deleteReport } from './api';
-import { useI18n } from './i18n';
-import MarkdownReport from './MarkdownReport';
-import { EMPTY_REPORT, normalizeReport } from './reportModel';
-import type { AnalystCategoryEvent, AnalystDeepDiveEvent, HistoryEntry, ItemPhase, PipelineEvent, TrendItem, TrendReport } from './types';
-import styles from './App.module.css';
+import { fetchHistory, fetchLatest, fetchReportDetail, runReportSSE, stopReport, deleteReport } from './api_client';
+import { useI18n } from './i18n_provider';
+import MarkdownReport from './markdown_report';
+import { EMPTY_REPORT, normalizeReport } from './report_model';
+import type { AnalystCategoryEvent, AnalystDeepDiveEvent, HistoryEntry, ItemPhase, PipelineEvent, TrendItem, TrendReport } from './dashboard_types';
+import styles from './trends_dashboard.module.css';
+
 
 function formatTime(value?: string, locale = 'zh-CN'): string {
   if (!value) return '';

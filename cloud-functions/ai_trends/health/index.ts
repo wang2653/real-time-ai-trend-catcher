@@ -3,7 +3,7 @@
  * Simple health check endpoint.
  */
 
-import { jsonResponse } from '../../_http';
+import { jsonResponse } from '../../_cf_http_helpers';
 
 export async function onRequestGet(context: any): Promise<Response> {
   return jsonResponse({

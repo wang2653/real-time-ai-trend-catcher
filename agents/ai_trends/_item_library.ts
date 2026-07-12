@@ -1,4 +1,4 @@
-import type { TrendSourceItem } from './_types.js';
+import type { TrendSourceItem } from './_pipeline_types.js';
 
 const TRACKING_PARAMS = new Set(['ref', 'source']);
 

@@ -1,4 +1,4 @@
-import type { TrendReport } from './types';
+import type { TrendReport } from './dashboard_types';
 
 export const EMPTY_REPORT: TrendReport = {
   status: 'empty',

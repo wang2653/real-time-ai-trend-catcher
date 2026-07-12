@@ -3,11 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { filterAiItems } from '../_sources.js';
-import { generateFallbackReport } from '../_report.js';
-import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_storage.js';
-import { loadHistoryFromMemory, loadLatestReportFromMemory, loadReportFromMemory, saveReportToMemory } from '../_memory.js';
-import type { TrendReport, TrendSourceItem } from '../_types.js';
+import { filterAiItems } from '../_data_sources.js';
+import { generateFallbackReport } from '../_report_helpers.js';
+import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_fallback_storage.js';
+import { loadHistoryFromMemory, loadLatestReportFromMemory, loadReportFromMemory, saveReportToMemory } from '../_memory_store.js';
+import type { TrendReport, TrendSourceItem } from '../_pipeline_types.js';
 
 class FakeMemory {
   messages: Array<{ content: string; metadata: Record<string, unknown>; createdAt: number }> = [];
@@ -29,7 +29,7 @@ class FakeMemory {
 }
 
 async function run() {
-  const { buildOpenAIClientOptions } = await import('../_model.js');
+  const { buildOpenAIClientOptions } = await import('../_agent_pipeline.js');
   const clientOptions = buildOpenAIClientOptions({
     AI_GATEWAY_API_KEY: 'test-key',
     AI_GATEWAY_BASE_URL: 'https://gateway.example.com/v1',
@@ -44,7 +44,7 @@ async function run() {
   assert.deepEqual(filtered.map((item: TrendSourceItem) => item.id), ['1']);
 
   const rawHtml = '<a href="https:&#x2F;&#x2F;github.com&#x2F;TanStack&#x2F;router&#x2F;issues&#x2F;7383" rel="nofollow">https:&#x2F;&#x2F;github.com&#x2F;TanStack&#x2F;router&#x2F;issues&#x2F;7383</a>';
-  const { cleanText, buildFallbackAiSummary } = await import('../_sources.js');
+  const { cleanText, buildFallbackAiSummary } = await import('../_data_sources.js');
   const cleaned = cleanText(rawHtml);
   const fallbackSummary = buildFallbackAiSummary({
     id: 'html_1',
@@ -86,7 +86,7 @@ async function run() {
   assert.equal((memoryDetail as TrendReport | null)?.reportMarkdown, report.reportMarkdown);
   assert.equal((memoryDetail as TrendReport | null)?.storage, 'memory');
 
-  const { mergeItemLibrary } = await import('../_items.js');
+  const { mergeItemLibrary } = await import('../_item_library.js');
   const mergeResult = mergeItemLibrary([
     {
       id: 'old_1',

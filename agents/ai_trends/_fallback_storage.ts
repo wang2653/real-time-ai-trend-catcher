@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { HistoryEntry, TrendReport } from './_types.js';
+import type { HistoryEntry, TrendReport } from './_pipeline_types.js';
 
 export function defaultBaseDir(): string {
   return process.env.AI_TRENDS_DATA_DIR || 'data/ai-trends';

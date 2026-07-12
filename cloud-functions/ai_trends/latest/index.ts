@@ -3,8 +3,8 @@
  * Returns the latest generated report.
  */
 
-import { jsonResponse } from '../../_http';
-import { getStore, loadLatestReport } from '../../_store';
+import { jsonResponse } from '../../_cf_http_helpers';
+import { getStore, loadLatestReport } from '../../_cf_store_access';
 
 export async function onRequestGet(context: any): Promise<Response> {
   const store = getStore(context);

@@ -1,4 +1,4 @@
-import type { HistoryEntry, TrendReport, TrendSourceItem } from './_types.js';
+import type { HistoryEntry, TrendReport, TrendSourceItem } from './_pipeline_types.js';
 
 const REPORT_CONVERSATION_ID = 'ai-trends-reports';
 const ITEM_CONVERSATION_ID = 'ai-trends-items';

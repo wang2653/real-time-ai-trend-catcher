@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
-import { getBody, getEnv, jsonResponse } from './_http.js';
-import { mergeItemLibrary, type TrendLibraryItem } from './_items.js';
-import { loadItemsFromMemory, saveItemsToMemory, saveReportToMemory } from './_memory.js';
-import { runAgentPipeline } from './_model.js';
-import type { PipelineEmit } from './_model.js';
-import { generateFallbackReport, utcNow } from './_report.js';
-import { collectSources } from './_sources.js';
-import { loadItemLibrary, saveItemLibrary, saveReport } from './_storage.js';
-import type { TrendReport } from './_types.js';
+import { getBody, getEnv, jsonResponse } from './_http_helpers.js';
+import { mergeItemLibrary, type TrendLibraryItem } from './_item_library.js';
+import { loadItemsFromMemory, saveItemsToMemory, saveReportToMemory } from './_memory_store.js';
+import { runAgentPipeline } from './_agent_pipeline.js';
+import type { PipelineEmit } from './_agent_pipeline.js';
+import { generateFallbackReport, utcNow } from './_report_helpers.js';
+import { collectSources } from './_data_sources.js';
+import { loadItemLibrary, saveItemLibrary, saveReport } from './_fallback_storage.js';
+import type { TrendReport } from './_pipeline_types.js';
 
 export async function onRequest(context: any): Promise<Response> {
   const body = getBody(context);
