@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "tsc -p tsconfig.test.json && node .test-build/tests/report_pipeline_test.js",
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.agent.json && vite build",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.agent.json && tsc -p cloud-functions/tsconfig.json && vite build",
     "preview": "vite preview",
     "sync": "node scripts/download_reports.js"
   },
@@ -17,7 +17,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.20.1",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.1",
