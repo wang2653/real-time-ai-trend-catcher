@@ -4,14 +4,11 @@
  */
 
 import { jsonResponse } from '../../_cf_http_helpers';
-import { getStore, loadLatestReport } from '../../_cf_store_access';
+import { loadLatestReport } from '../../_cf_local_storage';
 
 export async function onRequestGet(context: any): Promise<Response> {
-  const store = getStore(context);
-  if (store) {
-    const report = await loadLatestReport(store);
-    if (report) return jsonResponse(report);
-  }
+  const report = await loadLatestReport();
+  if (report) return jsonResponse(report);
   return jsonResponse({
     status: 'empty',
     summary: '还没有生成过 AI 趋势报告。',

@@ -4,13 +4,10 @@
  */
 
 import { jsonResponse } from '../../_cf_http_helpers';
-import { getStore, loadHistory } from '../../_cf_store_access';
+import { loadHistory } from '../../_cf_local_storage';
 
 export async function onRequestGet(context: any): Promise<Response> {
-  const store = getStore(context);
-  if (store) {
-    const history = await loadHistory(store);
-    if (history.length) return jsonResponse({ history });
-  }
+  const history = await loadHistory();
+  if (history.length) return jsonResponse({ history });
   return jsonResponse({ history: [] });
 }

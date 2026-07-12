@@ -5,28 +5,9 @@ import { join } from 'node:path';
 
 import { filterAiItems } from '../_data_sources.js';
 import { generateFallbackReport } from '../_report_helpers.js';
-import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_fallback_storage.js';
-import { loadHistoryFromMemory, loadLatestReportFromMemory, loadReportFromMemory, saveReportToMemory } from '../_memory_store.js';
+import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_local_storage.js';
 import type { TrendReport, TrendSourceItem } from '../_pipeline_types.js';
 
-class FakeMemory {
-  messages: Array<{ content: string; metadata: Record<string, unknown>; createdAt: number }> = [];
-
-  async appendMessage(input: { content: string; metadata?: Record<string, unknown> }) {
-    this.messages.push({
-      content: input.content,
-      metadata: input.metadata || {},
-      createdAt: this.messages.length + 1,
-    });
-    return `msg_${this.messages.length}`;
-  }
-
-  async getMessages(input: { limit?: number; order?: 'asc' | 'desc' }) {
-    const items = [...this.messages];
-    if (input.order === 'desc') items.reverse();
-    return items.slice(0, input.limit || 20);
-  }
-}
 
 async function run() {
   const { buildOpenAIClientOptions } = await import('../_agent_pipeline.js');
@@ -74,17 +55,7 @@ async function run() {
   assert.match(report.reportMarkdown, /https:\/\/example\.com\/langgraph/);
   assert.equal(report.trends.length, 1);
 
-  const fakeContext = { store: new FakeMemory() };
-  await saveReportToMemory(fakeContext, report);
-  const memoryLatest = await loadLatestReportFromMemory(fakeContext);
-  const memoryHistory = await loadHistoryFromMemory(fakeContext);
-  const memoryDetail = await loadReportFromMemory(fakeContext, 'run_test');
-  assert.equal(memoryLatest?.runId, 'run_test');
-  assert.equal(memoryLatest?.storage, 'memory');
-  assert.equal(memoryHistory[0]?.runId, 'run_test');
-  assert.equal(memoryHistory[0]?.storage, 'memory');
-  assert.equal((memoryDetail as TrendReport | null)?.reportMarkdown, report.reportMarkdown);
-  assert.equal((memoryDetail as TrendReport | null)?.storage, 'memory');
+
 
   const { mergeItemLibrary } = await import('../_item_library.js');
   const mergeResult = mergeItemLibrary([

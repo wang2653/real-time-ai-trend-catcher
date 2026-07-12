@@ -2,12 +2,11 @@ import { randomUUID } from 'node:crypto';
 
 import { getBody, getEnv, jsonResponse } from './_http_helpers.js';
 import { mergeItemLibrary, type TrendLibraryItem } from './_item_library.js';
-import { loadItemsFromMemory, saveItemsToMemory, saveReportToMemory } from './_memory_store.js';
 import { runAgentPipeline } from './_agent_pipeline.js';
 import type { PipelineEmit } from './_agent_pipeline.js';
 import { generateFallbackReport, utcNow } from './_report_helpers.js';
 import { collectSources } from './_data_sources.js';
-import { loadItemLibrary, saveItemLibrary, saveReport } from './_fallback_storage.js';
+import { loadItemLibrary, saveItemLibrary, saveReport } from './_local_storage.js';
 import type { TrendReport } from './_pipeline_types.js';
 
 export async function onRequest(context: any): Promise<Response> {
@@ -44,8 +43,7 @@ export async function onRequest(context: any): Promise<Response> {
         const sourceCounts = candidates.reduce((acc, i) => { const k = i.source || 'unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {} as Record<string, number>);
         console.log(`[run] candidates by source:`, sourceCounts);
 
-        const memoryItems = await loadItemsFromMemory(context).catch(() => []) as TrendLibraryItem[];
-        const existingItems = memoryItems.length ? memoryItems : await loadItemLibrary<TrendLibraryItem>();
+        const existingItems = await loadItemLibrary<TrendLibraryItem>();
         const mergeResult = mergeItemLibrary(existingItems, candidates, new Date().toISOString(), limit);
 
         const reportSourceCounts = mergeResult.reportItems.reduce((acc, i) => { const k = i.source || 'unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {} as Record<string, number>);
@@ -81,11 +79,9 @@ export async function onRequest(context: any): Promise<Response> {
         if (!report.items?.length) report.items = mergeResult.reportItems;
 
         // ── Persist ──
-        const savedToMemory = await saveReportToMemory(context, report).catch(() => false);
-        const savedItemsToMemory = await saveItemsToMemory(context, mergeResult.items).catch(() => false);
-        if (!savedItemsToMemory) await saveItemLibrary(mergeResult.items);
-        report.storage = savedToMemory ? 'memory' : 'file-fallback';
-        if (!savedToMemory) await saveReport(report);
+        await saveItemLibrary(mergeResult.items);
+        report.storage = 'file-fallback';
+        await saveReport(report);
 
         // ── Final event with complete report ──
         emit({ stage: 'complete', status: 'done', report });
@@ -108,8 +104,7 @@ export async function onRequest(context: any): Promise<Response> {
         failed.summary = '生成失败';
         failed.reportMarkdown = `# AI 趋势日报\n\n生成失败：${message}`;
         failed.error = message;
-        const savedToMemory = await saveReportToMemory(context, failed).catch(() => false);
-        if (!savedToMemory) await saveReport(failed);
+        await saveReport(failed);
 
         emit({ stage: 'complete', status: 'failed', report: failed });
       } finally {
