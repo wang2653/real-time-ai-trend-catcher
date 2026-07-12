@@ -438,6 +438,8 @@ export default function App() {
   const [drawerReport, setDrawerReport] = useState<TrendReport | null>(null);
   const [pipelineStages, setPipelineStages] = useState<Record<string, StageState>>({});
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [activeSourceFilter, setActiveSourceFilter] = useState<string | null>(null);
+  const [activeTopicFilter, setActiveTopicFilter] = useState<string | null>(null);
 
   // Live (during-generation) state — driven by SSE `items` / `analysis` events.
   const [liveItems, setLiveItems] = useState<LiveItem[]>([]);
@@ -709,8 +711,17 @@ export default function App() {
 
   const safeReport = normalizeReport(report);
   const newsItems = safeReport.items;
-  const newItems = useMemo(() => newsItems.filter(item => item.isNew), [newsItems]);
-  const recurringItems = useMemo(() => newsItems.filter(item => !item.isNew), [newsItems]);
+
+  const filteredItems = useMemo(() => {
+    return newsItems.filter(item => {
+      if (activeSourceFilter && item.source !== activeSourceFilter) return false;
+      if (activeTopicFilter && item.category !== activeTopicFilter) return false;
+      return true;
+    });
+  }, [newsItems, activeSourceFilter, activeTopicFilter]);
+
+  const newItems = useMemo(() => filteredItems.filter(item => item.isNew), [filteredItems]);
+  const recurringItems = useMemo(() => filteredItems.filter(item => !item.isNew), [filteredItems]);
   const trendCount = safeReport.trends.length;
   const sourceNames = useMemo(() => Array.from(new Set(newsItems.map(item => item.source))).join(' / ') || 'Hacker News / Dev.to', [newsItems]);
 
@@ -780,10 +791,26 @@ export default function App() {
 
           <div className={styles.filterRow}>
             <div className={styles.sourceList}>
-              {(sourceNames.split(' / ')).map(source => <span key={source}>{source}</span>)}
+              {(sourceNames.split(' / ')).map(source => (
+                <span 
+                  key={source} 
+                  className={activeSourceFilter === source ? styles.activeFilter : ''}
+                  onClick={() => setActiveSourceFilter(prev => prev === source ? null : source)}
+                >
+                  {source}
+                </span>
+              ))}
             </div>
             <div className={styles.topicGrid}>
-              {TOPICS.map(topic => <span key={topic}>{topic}</span>)}
+              {TOPICS.map(topic => (
+                <span 
+                  key={topic}
+                  className={activeTopicFilter === topic ? styles.activeFilter : ''}
+                  onClick={() => setActiveTopicFilter(prev => prev === topic ? null : topic)}
+                >
+                  {topic}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -799,9 +826,14 @@ export default function App() {
             <OnboardingHero onStart={run} loading={loading} />
           ) : (
             <div className={styles.newsList}>
-              {safeReport.newItemCount === 0 && safeReport.status === 'success' && (
+              {safeReport.newItemCount === 0 && safeReport.status === 'success' && !activeSourceFilter && !activeTopicFilter && (
                 <div className={styles.noNewBanner}>
                   {t('noNewBanner')}
+                </div>
+              )}
+              {newsItems.length > 0 && newItems.length === 0 && recurringItems.length === 0 && (
+                <div className={styles.noNewBanner} style={{ color: '#64748b', background: '#f8fafc', borderColor: '#e2e8f0' }}>
+                  当前筛选条件下无匹配数据
                 </div>
               )}
 

@@ -34,7 +34,7 @@
   line-height: 1.15;
 }
 
-.brandBlock > p {
+.brandBlock>p {
   max-width: 620px;
   margin: 8px 0 0;
   color: #475569;
@@ -112,7 +112,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: border-color 150ms ease, background 150ms ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .langToggle:hover {
@@ -133,7 +133,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .topCornerIcon:hover {
@@ -286,8 +286,17 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.7); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
 }
 
 .stageInfo {
@@ -396,12 +405,35 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: all 150ms ease;
+  user-select: none;
+}
+
+.sourceList span:hover {
+  background: #dbeafe;
+}
+
+.sourceList span.activeFilter {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1d4ed8;
 }
 
 .topicGrid span {
   border-color: #bbf7d0;
   color: #15803d;
   background: #f0fdf4;
+}
+
+.topicGrid span:hover {
+  background: #dcfce7;
+}
+
+.topicGrid span.activeFilter {
+  background: #15803d;
+  color: #ffffff;
+  border-color: #15803d;
 }
 
 /* News list */
@@ -447,7 +479,7 @@
 }
 
 .feedGroupHeader:first-child,
-.noNewBanner + .feedGroupHeader {
+.noNewBanner+.feedGroupHeader {
   border-top: 0;
 }
 
@@ -643,10 +675,12 @@
   letter-spacing: 0.01em;
   line-height: 1;
 }
+
 .triggerBadge[data-trigger="schedule"] {
   color: #7c3aed;
   background: #ede9fe;
 }
+
 .triggerBadge[data-trigger="manual"] {
   color: #0369a1;
   background: #e0f2fe;
@@ -1062,27 +1096,32 @@
 }
 
 @keyframes btnSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ====================================
    Skeleton Loaders
    ==================================== */
 .skeletonShimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(226, 232, 240, 0.6) 0%,
-    rgba(226, 232, 240, 1) 50%,
-    rgba(226, 232, 240, 0.6) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(226, 232, 240, 0.6) 0%,
+      rgba(226, 232, 240, 1) 50%,
+      rgba(226, 232, 240, 0.6) 100%);
   background-size: 200% 100%;
   border-radius: 8px;
   animation: skelShimmer 1.4s ease-in-out infinite;
 }
 
 @keyframes skelShimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .skeletonCard {
@@ -1321,9 +1360,20 @@
 }
 
 @keyframes livePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55); transform: scale(1); }
-  70%  { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); transform: scale(1.1); }
-  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); transform: scale(1); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
+    transform: scale(1);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
+    transform: scale(1.1);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+    transform: scale(1);
+  }
 }
 
 .liveItemCard {
@@ -1361,8 +1411,13 @@
 }
 
 @keyframes liveItemKeptIn {
-  from { background: rgba(22, 163, 74, 0.14); }
-  to   { background: rgba(22, 163, 74, 0.025); }
+  from {
+    background: rgba(22, 163, 74, 0.14);
+  }
+
+  to {
+    background: rgba(22, 163, 74, 0.025);
+  }
 }
 
 /* Phase: summarized */
@@ -1414,8 +1469,15 @@
 }
 
 @keyframes liveSummaryIn {
-  from { opacity: 0; transform: translateY(-3px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .livePhaseTag,
@@ -1465,12 +1527,10 @@
 .stageProgressFill {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(22, 163, 74, 0.85) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(22, 163, 74, 0.85) 50%,
+      transparent 100%);
   border-radius: inherit;
   animation: stageScan 1.6s linear infinite;
   width: 60%;
@@ -1479,20 +1539,23 @@
 .stageProgressIndeterminate {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(22, 163, 74, 0.85) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(22, 163, 74, 0.85) 50%,
+      transparent 100%);
   border-radius: inherit;
   width: 50%;
   animation: stageScan 1.6s linear infinite;
 }
 
 @keyframes stageScan {
-  0%   { transform: translateX(-110%); }
-  100% { transform: translateX(220%); }
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(220%);
+  }
 }
 
 .stageDetail {
@@ -1533,12 +1596,10 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #d97706 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      #d97706 50%,
+      transparent 100%);
   width: 50%;
   animation: stageScan 1.6s linear infinite;
 }
@@ -1582,7 +1643,7 @@
   color: #78350f;
   /* Fade the top so older text smoothly disappears as new tokens push it up. */
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 100%);
-          mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 100%);
 }
 
 .miniTypingPreviewInner {
@@ -1606,7 +1667,9 @@
 }
 
 @keyframes typingCursor {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
 .miniTypingFooter {

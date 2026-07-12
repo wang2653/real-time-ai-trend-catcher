@@ -113,8 +113,8 @@ const translations = {
     title: 'AI Daily News Monitor',
     subtitle: 'Crawl, filter, and aggregate news from AI industry automatically into traceable trend reports.',
     scheduleHint: 'Scheduled Task: Daily at 01:00 UTC',
-    generate: 'Execute Generation',
-    generating: 'Processing Task...',
+    generate: 'Execute',
+    generating: 'Processing...',
     stop: 'Terminate',
 
     // Stats bar
