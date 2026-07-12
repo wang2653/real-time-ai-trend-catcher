@@ -1,10 +1,10 @@
-import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { HistoryEntry, TrendReport } from './_pipeline_types.js';
 
 export function defaultBaseDir(): string {
-  return process.env.AI_TRENDS_DATA_DIR || 'data/ai_trends';
+  return process.env.AI_TRENDS_DATA_DIR || 'data/ai-trends';
 }
 
 function withStorageMarker(report: TrendReport, storage: 'memory' | 'file-fallback'): TrendReport {
@@ -67,33 +67,4 @@ export async function saveItemLibrary(items: unknown[], baseDir = defaultBaseDir
 
 export async function loadItemLibrary<T = unknown>(baseDir = defaultBaseDir()): Promise<T[]> {
   return readJson<T[]>(join(baseDir, 'items.json'), []);
-}
-
-export async function deleteReport(runId: string, baseDir = defaultBaseDir()): Promise<boolean> {
-  try {
-    const base = await ensureBase(baseDir);
-    const safeRunId = runId.split(/[\\/]/).pop() || runId;
-    await rm(join(base, 'reports', `${safeRunId}.json`), { force: true });
-
-    const history = await loadHistory(base);
-    const next = history.filter(entry => entry.runId !== runId);
-    await writeFile(join(base, 'history.json'), JSON.stringify(next, null, 2), 'utf8');
-
-    const latest = await loadLatestReport(base);
-    if (latest && latest.runId === runId) {
-      if (next.length > 0) {
-        const newLatest = await loadReport(next[0].runId!, base);
-        if (newLatest) {
-          await writeFile(join(base, 'latest.json'), JSON.stringify(newLatest, null, 2), 'utf8');
-        } else {
-          await rm(join(base, 'latest.json'), { force: true });
-        }
-      } else {
-        await rm(join(base, 'latest.json'), { force: true });
-      }
-    }
-    return true;
-  } catch {
-    return false;
-  }
 }

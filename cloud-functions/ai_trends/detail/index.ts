@@ -4,14 +4,17 @@
  */
 
 import { jsonResponse, readJsonBody } from '../../_cf_http_helpers';
-import { loadReportByRunId } from '../../_cf_local_storage';
+import { getStore, loadReportByRunId } from '../../_cf_store_access';
 
 export async function onRequestPost(context: any): Promise<Response> {
   const body = await readJsonBody(context);
   const runId = (body.runId || body.run_id) as string | undefined;
   if (!runId) return jsonResponse({ error: 'runId is required' }, 400);
 
-  const report = await loadReportByRunId(runId);
-  if (report) return jsonResponse(report);
+  const store = getStore(context);
+  if (store) {
+    const report = await loadReportByRunId(store, runId);
+    if (report) return jsonResponse(report);
+  }
   return jsonResponse({ error: 'report not found' }, 404);
 }

@@ -7,8 +7,7 @@
     "dev": "vite",
     "test": "tsc -p tsconfig.test.json && node .test-build/tests/report_pipeline_test.js",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.agent.json && tsc -p cloud-functions/tsconfig.json && vite build",
-    "preview": "vite preview",
-    "sync": "node scripts/download_reports.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@openai/agents": "^0.10.1",

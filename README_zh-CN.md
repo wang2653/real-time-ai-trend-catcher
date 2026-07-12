@@ -1,6 +1,6 @@
 # AI 趋势定时汇总
 
-这个项目是使用 OpenAI Agents SDK + React 构建的定时 AI 资讯聚合 Agent，部署在 EdgeOne Makers 上，自动采集、筛选、评分并生成每日趋势报告。
+> 基于 OpenAI Agents SDK 构建的定时 AI 资讯聚合 Agent，部署在 EdgeOne Makers 上 — 自动采集、筛选、评分并生成每日趋势报告。
 
 **框架：** OpenAI Agents SDK · **分类：** Scheduled · **语言：** TypeScript
 
