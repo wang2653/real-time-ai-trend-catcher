@@ -14,8 +14,8 @@ export async function onRequestGet(context: any): Promise<Response> {
   }
   return jsonResponse({
     status: 'empty',
-    summary: '还没有生成过 AI 趋势报告。',
-    reportMarkdown: '# AI 趋势日报\n\n还没有生成过报告，点击"手动生成"开始。',
+    summary: 'No incremental updates detected',
+    reportMarkdown: 'Data stream is empty',
     trends: [],
     items: [],
   });
