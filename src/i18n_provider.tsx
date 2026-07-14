@@ -220,8 +220,8 @@ const I18nContext = createContext<{
   t: (key: TranslationKey) => string;
   toggleLocale: () => void;
 }>({
-  locale: 'zh',
-  t: (key) => translations.zh[key],
+  locale: 'en',
+  t: (key) => translations.en[key] ?? key,
   toggleLocale: () => { },
 });
 
@@ -231,7 +231,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem('ai-trends-locale');
       if (saved === 'en' || saved === 'zh') return saved;
     }
-    return 'zh';
+    return 'en';
   });
 
   const toggleLocale = useCallback(() => {
