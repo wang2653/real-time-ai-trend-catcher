@@ -196,8 +196,9 @@ function PipelineBar({
         return (
           <div key={def.key} className={styles.pipelineStageWrap}>
             {i > 0 && (
-              <div className={`${styles.stageConnector} ${prevState && (prevState.status === 'done' || prevState.status === 'failed') ? styles.stageConnectorActive : ''
-                }`} />
+              <div className={`${styles.stageConnector} ${
+                prevState && (prevState.status === 'done' || prevState.status === 'failed') ? styles.stageConnectorActive : ''
+              }`} />
             )}
             <div className={`${styles.pipelineStage} ${styles[`stage_${state.status}`] || ''}`}>
               <div className={styles.stageDot}>
@@ -791,8 +792,8 @@ export default function App() {
           <div className={styles.filterRow}>
             <div className={styles.sourceList}>
               {(sourceNames.split(' / ')).map(source => (
-                <span
-                  key={source}
+                <span 
+                  key={source} 
                   className={activeSourceFilter === source ? styles.activeFilter : ''}
                   onClick={() => setActiveSourceFilter(prev => prev === source ? null : source)}
                 >
@@ -802,7 +803,7 @@ export default function App() {
             </div>
             <div className={styles.topicGrid}>
               {TOPICS.map(topic => (
-                <span
+                <span 
                   key={topic}
                   className={activeTopicFilter === topic ? styles.activeFilter : ''}
                   onClick={() => setActiveTopicFilter(prev => prev === topic ? null : topic)}
