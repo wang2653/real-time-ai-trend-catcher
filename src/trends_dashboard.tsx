@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, SVGProps } from 'react';
+import { createRoot } from 'react-dom/client';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import { fetchHistory, fetchLatest, fetchReportDetail, runReportSSE, stopReport, deleteReport } from './api_client';
 import { useI18n } from './i18n_provider';
 import MarkdownReport from './markdown_report';
@@ -143,6 +146,9 @@ const IconDatabase = (p: IconProps) => (
 );
 const IconClock = (p: IconProps) => (
   <Icon {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Icon>
+);
+const IconDownload = (p: IconProps) => (
+  <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>
 );
 
 const IconGitHub = (p: IconProps) => (
@@ -699,6 +705,41 @@ export default function App() {
     return () => { document.body.style.overflow = ''; };
   }, [drawerOpen]);
 
+  const downloadPdf = useCallback((targetReport: TrendReport) => {
+    const container = document.createElement('div');
+    container.style.padding = '30px';
+    container.style.fontFamily = 'sans-serif';
+    container.style.color = '#333';
+    container.style.width = '800px';
+    
+    const header = document.createElement('h2');
+    header.innerText = t('reportTitle') + ' - ' + formatTime(targetReport.generatedAt, locale);
+    header.style.borderBottom = '2px solid #3EA7D4';
+    header.style.paddingBottom = '10px';
+    header.style.marginBottom = '20px';
+    container.appendChild(header);
+
+    const reportContent = document.createElement('div');
+    container.appendChild(reportContent);
+
+    const root = createRoot(reportContent);
+    root.render(<MarkdownReport markdown={targetReport.reportMarkdown || ''} />);
+    
+    setTimeout(() => {
+      const opt = {
+        margin:       10,
+        filename:     `AI-Report-${formatTime(targetReport.generatedAt, locale).replace(/[:/]/g, '-')}.pdf`,
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+      };
+      
+      html2pdf().set(opt).from(container).save().then(() => {
+        root.unmount();
+      });
+    }, 300); // give it a moment to render markdown
+  }, [locale, t]);
+
   // Keep the streaming drawer scrolled to the bottom as new tokens arrive,
   // so the user always sees the freshest text.
   useEffect(() => {
@@ -955,9 +996,22 @@ export default function App() {
                     <span>{formatTime(safeReport.generatedAt, locale)}</span>
                   </div>
                   <strong>{safeReport.summary || `${trendCount} ${t('topics')} · ${newsItems.length} ${t('items')}`}</strong>
-                  <span className={styles.viewReportLink}>
-                    {t('viewReport')} <IconArrowRight size={13} style={{ verticalAlign: '-2px', marginLeft: 2 }} />
-                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className={styles.viewReportLink}>
+                      {t('viewReport')} <IconArrowRight size={13} style={{ verticalAlign: '-2px', marginLeft: 2 }} />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadPdf(safeReport);
+                      }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#3EA7D4' }}
+                      title="Download PDF"
+                    >
+                      <IconDownload size={16} />
+                    </button>
+                  </div>
                 </button>
               )}
 
@@ -1057,10 +1111,18 @@ export default function App() {
         {/* Formal report view */}
         {!streamingDrawerOpen && drawerReport && (
           <div className={styles.drawerBody} ref={drawerBodyRef}>
-            <div className={styles.drawerMeta}>
+            <div className={styles.drawerMeta} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {drawerReport.itemCount != null && <span className={styles.reportMetaTag}>{drawerReport.itemCount} {t('reportItems')}</span>}
               {drawerReport.newItemCount != null && <span className={styles.reportMetaTag}>{drawerReport.newItemCount} {t('reportNew')}</span>}
               {drawerReport.durationMs != null && <span className={styles.reportMetaTag}>{(drawerReport.durationMs / 1000).toFixed(1)}s</span>}
+              <button
+                type="button"
+                onClick={() => downloadPdf(drawerReport)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#3EA7D4', marginLeft: 'auto' }}
+                title="Download PDF"
+              >
+                <IconDownload size={16} />
+              </button>
             </div>
             <MarkdownReport markdown={drawerReport.reportMarkdown} />
           </div>
