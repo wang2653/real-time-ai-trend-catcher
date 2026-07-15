@@ -153,7 +153,7 @@ const translations = {
     reportsLabel: 'Research Archives',
     reportsTitle: 'Report Repository',
     reportCount: ' archived',
-    latest: 'Latest Release',
+    latest: 'Latest',
     viewReport: 'View Full Research',
     noSummary: 'No summary',
     noHistory: 'No archived records',
@@ -163,7 +163,7 @@ const translations = {
 
     // Trigger badge
     triggerSchedule: 'Scheduled Job',
-    triggerManual: 'Manual Trigger',
+    triggerManual: 'Manual',
 
     // Status
     statusEmpty: 'Pending',

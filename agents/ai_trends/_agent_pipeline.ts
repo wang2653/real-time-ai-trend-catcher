@@ -418,7 +418,7 @@ export interface PipelineEvent {
  * The handler is responsible for serializing this to a `data:` SSE frame.
  */
 // type alias handling multiple possible payload variants
-export type PipelineEmit = PipelineEvent | { type: string; [key: string]: unknown };
+export type PipelineEmit = PipelineEvent | { type: string;[key: string]: unknown };
 
 // main input configuration passed to the execution runner
 export interface PipelineInput {
@@ -527,7 +527,7 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   // deconstruct parameters and set up empty tracking objects
   const { items, historyItems, runId, trigger, env, noNewItems, onProgress, sandbox, signal } = input;
   const stages: PipelineStageResult = {};
-  const emit = onProgress ?? (() => {});
+  const emit = onProgress ?? (() => { });
 
   // ── Stage 1+2: Curator & Summarizer (parallel) ─────────────────
   // initialize state with full lists prior to agent logic
