@@ -148,7 +148,7 @@ const IconClock = (p: IconProps) => (
   <Icon {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Icon>
 );
 const IconDownload = (p: IconProps) => (
-  <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>
+  <Icon {...p} strokeWidth={2.5}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>
 );
 
 const IconGitHub = (p: IconProps) => (
@@ -740,6 +740,16 @@ export default function App() {
     }, 300); // give it a moment to render markdown
   }, [locale, t]);
 
+  const downloadHistoricalPdf = useCallback(async (runId?: string) => {
+    if (!runId) return;
+    try {
+      const data = await fetchReportDetail(runId);
+      downloadPdf(normalizeReport(data));
+    } catch (error) {
+      console.error(error);
+    }
+  }, [downloadPdf]);
+
   // Keep the streaming drawer scrolled to the bottom as new tokens arrive,
   // so the user always sees the freshest text.
   useEffect(() => {
@@ -1002,14 +1012,14 @@ export default function App() {
                     </span>
                     <button
                       type="button"
+                      className={styles.downloadBtn}
                       onClick={(e) => {
                         e.stopPropagation();
                         downloadPdf(safeReport);
                       }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#3EA7D4' }}
                       title="Download PDF"
                     >
-                      <IconDownload size={16} />
+                      <IconDownload size={14} />
                     </button>
                   </div>
                 </button>
@@ -1033,6 +1043,18 @@ export default function App() {
                       <div className={styles.reportItemMeta}>
                         {item.itemCount != null && <span>{item.itemCount} {t('items')}</span>}
                         {item.newItemCount != null && <span>{item.newItemCount} {t('reportNew')}</span>}
+                        <button
+                          type="button"
+                          className={styles.downloadBtn}
+                          style={{ marginLeft: 'auto' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadHistoricalPdf(item.runId);
+                          }}
+                          title="Download PDF"
+                        >
+                          <IconDownload size={14} />
+                        </button>
                       </div>
                     </button>
                     <button
@@ -1117,11 +1139,12 @@ export default function App() {
               {drawerReport.durationMs != null && <span className={styles.reportMetaTag}>{(drawerReport.durationMs / 1000).toFixed(1)}s</span>}
               <button
                 type="button"
+                className={styles.downloadBtn}
+                style={{ marginLeft: 'auto' }}
                 onClick={() => downloadPdf(drawerReport)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#3EA7D4', marginLeft: 'auto' }}
                 title="Download PDF"
               >
-                <IconDownload size={16} />
+                <IconDownload size={14} />
               </button>
             </div>
             <MarkdownReport markdown={drawerReport.reportMarkdown} />

@@ -676,6 +676,27 @@
   line-height: 1;
 }
 
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3EA7D4;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.downloadBtn:hover {
+  background: #2D7FA8;
+  transform: scale(1.05);
+}
+
 .triggerBadge[data-trigger="schedule"] {
   color: #7c3aed;
   background: #ede9fe;
@@ -797,6 +818,7 @@
 .reportItemMeta {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .reportItemMeta span {
