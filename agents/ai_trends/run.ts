@@ -28,7 +28,7 @@ export async function onRequest(context: any): Promise<Response> {
   // determine trigger type based on _schedule flag or body
   const trigger = body._schedule ? 'schedule' : body.trigger || 'manual';
   // define sources, using the provided array
-  const sources = Array.isArray(body.sources) ? body.sources : [ 'hackernews', 'devto', 'web' ];
+  const sources = Array.isArray(body.sources) ? body.sources : ['hackernews', 'devto', 'web'];
   // parse limit parameter from the body, defaulting to 30
   const limit = Number(body.limit || 30);
   // record timestamp
@@ -50,7 +50,7 @@ export async function onRequest(context: any): Promise<Response> {
         try {
           // stringify event to json, format as sse, encode and enqueue
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        // catch any errors during enqueue
+          // catch any errors during enqueue
         } catch { // stream may be closed, ignore error
         }
       };
@@ -60,7 +60,7 @@ export async function onRequest(context: any): Promise<Response> {
         // ── check abort before starting ──
         if (signal?.aborted) {
           // emit complete event with fallback report and stopped flag, with spaced brackets
-          emit({ stage: 'complete', status: 'done', report: generateFallbackReport([ ], runId, trigger), stopped: true });
+          emit({ stage: 'complete', status: 'done', report: generateFallbackReport([], runId, trigger), stopped: true });
           // exit function early
           return;
         }
@@ -75,19 +75,19 @@ export async function onRequest(context: any): Promise<Response> {
         // await collection of candidates from sources
         const candidates = await collectSources(sources, limit, sandbox);
         // reduce candidates to count items per source, with spaced brackets
-        const sourceCounts = candidates.reduce((acc, i) => { const k = i.source || 'unknown'; acc[ k ] = (acc[ k ] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const sourceCounts = candidates.reduce((acc, i) => { const k = i.source || 'unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {} as Record<string, number>);
         // log candidate breakdown by source, with spaced brackets
         console.log(`[ run ] candidates by source:`, sourceCounts);
 
         // try loading existing items from memory, default to empty array on fail, with spaced brackets
-        const memoryItems = await loadItemsFromMemory(context).catch(() => [ ]) as TrendLibraryItem[ ];
+        const memoryItems = await loadItemsFromMemory(context).catch(() => []) as TrendLibraryItem[];
         // use memory items if available, otherwise load from fallback library
         const existingItems = memoryItems.length ? memoryItems : await loadItemLibrary<TrendLibraryItem>();
         // merge existing items with new candidates
         const mergeResult = mergeItemLibrary(existingItems, candidates, new Date().toISOString(), limit);
 
         // calculate source statistics for the generated report items, with spaced brackets
-        const reportSourceCounts = mergeResult.reportItems.reduce((acc, i) => { const k = i.source || 'unknown'; acc[ k ] = (acc[ k ] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const reportSourceCounts = mergeResult.reportItems.reduce((acc, i) => { const k = i.source || 'unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {} as Record<string, number>);
         // log report items breakdown by source, with spaced brackets
         console.log(`[ run ] reportitems by source:`, reportSourceCounts);
 
@@ -170,7 +170,7 @@ export async function onRequest(context: any): Promise<Response> {
         emit({ stage: 'error', status: 'failed', detail: message });
 
         // generate fallback report to return, with spaced brackets
-        const failed = generateFallbackReport([ ], runId, trigger);
+        const failed = generateFallbackReport([], runId, trigger);
         // set fallback report status to failed
         failed.status = 'failed';
         // set the generation timestamp for the report
