@@ -54,7 +54,7 @@ export const WRITER_INSTRUCTIONS = [
   '# AI 趋势日报',
   '',
   '## 每日大事',
-  '（2-3 句核心发现，不超过 100 字，基于 keyInsight 字段扩写）',
+  '（3 句核心发现，不超过 100 字，基于 keyInsight 字段扩写）',
   '',
   '## 热点摘要',
   '（按 category 分组展示。每条格式：`- [标题](url) — 一句话摘要`）',
@@ -134,7 +134,7 @@ export function buildWriterPrompt(items: TrendSourceItem[], analysis: TrendAnaly
   lines.push('', `数据源统计：${JSON.stringify(sourceCounts)}，新增 ${newCount} 条`);
   lines.push('', '原始条目（含 url、category、aiSummary，用于填充报告链接和摘要）：', buildItemsJson(items, maxItems));
   if (noNewItems) {
-    lines.push('', '⚠️ 本次未发现新增内容。在"今日要点"中注明，"新出现"章节写"本次无新增条目"。');
+    lines.push('', '⚠️ 本次未发现新增内容。在"每日大事"中注明，"新出现"章节写"本次无新增条目"。');
   }
   return lines.join('\n');
 }
