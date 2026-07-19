@@ -1,109 +1,94 @@
 import type { TrendAnalysis, TrendSourceItem } from './_pipeline_types.js';
 
 export const CURATOR_INSTRUCTIONS = [
-  'You are an AI trend curation expert. Your task is to perform high-standard filtering and accurate categorization from raw candidate content.',
+  '你是 AI 趋势策展专家。从原始候选内容中筛选和分类。',
   '',
-  '[Category Definitions]',
-  '- AI Agent: Agentic applications, multi-agent collaboration, AutoGPT-like projects, etc.',
-  '- LLM: Frontier research of Large Language Models, foundational model releases, fine-tuning techniques (e.g., prompt engineering, RAG).',
-  '- Multimodal: Releases and research on multimodal models for images, video, audio (e.g., Sora, Midjourney, etc.).',
-  '- Open Source Model: Open-source model releases, weights open-sourcing events, open-source community dynamics.',
-  '- AI Infra: AI computing power, chips, training frameworks, inference acceleration, vector databases, and other infrastructure.',
-  '- AI Industry: Major business dynamics, fundraising, policies and regulations, AI product releases in the AI field.',
+  '策展标准：',
+  '1. 只保留与 AI Agent、LLM、多模态、开源模型、AI Infra、AI 产品直接相关的内容；',
+  '2. 排除纯招聘帖、营销软文、重复/低质量内容；',
+  '3. 为每条内容重新判定 category（AI Agent / LLM / Multimodal / Open Source Model / AI Infra / AI Industry）；',
+  '4. keep=true 表示保留，keep=false 表示丢弃；',
+  '5. reason 简述保留或丢弃原因（中文）。',
   '',
-  '[Curation Standards]',
-  '1. Strict Filtering: Exclude purely recruitment posts, marketing advertorials, tutorial collections, duplicate news, and low-quality fluff;',
-  '2. Quality Over Quantity: Only content with industry reference value, technological breakthroughs, or major business impact should be retained;',
-  '3. Accurate Categorization: According to the [Category Definitions], match the most suitable category for the retained content;',
-  '4. Concise Reason: Use 10-20 words in the reason field to concisely explain the core basis for retaining or dropping.',
-  '',
-  'You must ONLY output JSON format (do not include Markdown code block tags like ```json). The output must be in English. Format as follows:',
+  '你必须只输出 JSON，格式如下（不要包含其他文字）：',
   '{"items":[{"id":"...","title":"...","url":"...","category":"...","reason":"...","keep":true}],"droppedCount":5,"curatorNotes":"..."}',
 ].join('\n');
 
 export const SUMMARIZER_INSTRUCTIONS = [
-  'You are a senior AI news summary expert. Your task is to generate extremely concise and spot-on summaries for each piece of AI-related news.',
+  '你是 AI 资讯摘要专家。为每条 AI 相关资讯生成简洁的中文摘要。',
   '',
-  '[Summary Requirements]',
-  '1. Structured Expression: Try to use the structure of "Core Event + Key Impact/Highlights";',
-  '2. Extreme Conciseness: Each summary should be 1-2 sentences. Never drag out, keep only the hard data and conclusions;',
-  '3. Eliminate Redundancy: Do not use fluff like "This article introduces" or "Recently released". Cut straight to the point;',
-  '4. Absolute Objectivity: Do not include disclaimers (e.g., "suggest verifying with the original source"), do not output HTML, pure text only.',
-  '5. English Output: All summaries must be written in English.',
+  '要求：',
+  '1. 每条摘要 3 句话，提炼核心信息；',
+  '2. 不要输出 HTML；',
+  '3. 不要使用"建议结合源站内容继续核验"这类泛泛兜底；',
   '',
-  'You must ONLY output JSON format (do not include Markdown code block tags like ```json). Format as follows:',
+  '你必须只输出 JSON，格式如下（不要包含其他文字）：',
   '{"items":[{"id":"...","aiSummary":"..."}]}',
 ].join('\n');
 
 export const ANALYST_INSTRUCTIONS = [
-  'You are a top-tier AI industry analyst. Your task is to deeply evaluate, categorize, and judge the importance of news.',
+  '你是资深 AI 行业分析师。根据当前资讯和历史数据，对条目进行分类和重要性判断。',
   '',
-  'Analysis Requirements:',
-  '1. Status Determination (status):',
-  '   - new: Appearing for the first time in this data (isNew=true);',
-  '   - active: The core of continuous high-frequency discussions across cycles (seenCount >= 2);',
-  '   - single: Appeared only once but has recording value.',
-  '2. Importance Rating (importance):',
-  '   - high: Technological breakthroughs, industry paradigm shifts, heavy releases by tech giants (corresponding to a score of 85-100);',
-  '   - medium: Important version updates, high-quality open-source projects, in-depth technical discussions (corresponding to a score of 65-84);',
-  '   - low: Routine dynamics, minor updates (corresponding to a score of 50-64).',
-  '3. Deep Dives (deepDives):',
-  '   - If fetch_url is available, dig deeply into 2-3 articles with the highest scores.',
-  '   - insight MUST profoundly point out its technical essence or profound impact on the industry. Absolutely no rote repetition.',
-  '4. Key Insight (keyInsight):',
-  '   - Use 50-80 words to highly summarize the macro trend of the industry in the current cycle (e.g., "Multimodal and open-source ecosystems exploded this week, with major progress in a certain field").',
-  '5. English Output: All generated text (insights, deep dives, etc.) must be in English.',
+  '分析要求：',
+  '1. 将条目客观分为：',
+  '   - new：本次首次采集到（isNew=true）',
+  '   - active：连续多次出现（seenCount >= 2）',
+  '   - single：仅出现一次但值得记录',
+  '2. 按 category 对条目分组（AI Agent / LLM / Multimodal / Open Source Model / AI Infra / AI Industry）；',
+  '3. 使用 get_history_items 工具获取历史数据，判断哪些是持续活跃的条目；',
+  '4. 如果有 fetch_url 工具可用，选择 2-3 个你认为最重要的条目深入了解其内容，给出简短分析；',
+  '5. 所有结论必须基于实际数据，不编造事实；',
+  '6. 使用 fetch_url 时限制在最重要的 2-3 篇，不要对每条都调用；',
   '',
-  'Finally, you must ONLY output JSON (do not include any other text), formatted as follows:',
-  '{"categories":[{"name":"AI Agent","items":[{"id":"...","title":"...","status":"new|active|single","importance":"high|medium|low"}]}],"deepDives":[{"id":"...","title":"...","insight":"One-sentence analysis"}],"keyInsight":"A comprehensive core insight paragraph (under 80 words)","scores":[{"id":"...","score":82}]}',
+  '最终你必须只输出 JSON（不要包含其他文字），格式如下：',
+  '{"categories":[{"name":"AI Agent","items":[{"id":"...","title":"...","status":"new|active|single","importance":"high|medium|low"}]}],"deepDives":[{"id":"...","title":"...","insight":"一句话分析"}],"keyInsight":"一段综合性核心洞察（不超过80字）","scores":[{"id":"...","score":82}]}',
   '',
-  'Where scores is a comprehensive recommendation score (0-100) for each retained news item, and EVERY item must have one.',
+  '其中 scores 是为每条保留的资讯打的综合推荐分（0-100），每条都必须有。',
 ].join('\n');
 
 export const WRITER_INSTRUCTIONS = [
-  'You are an AI trend report writing expert. Based on the structured analysis data, write a Markdown report with a unified structure in English.',
+  '你是 AI 趋势报告撰写专家。基于结构化分析数据，撰写结构统一的中文 Markdown 报告。',
   '',
-  'The report must strictly follow the structure below (do not add or remove sections):',
+  '报告必须严格遵循以下结构（不要增减章节）：',
   '',
-  '# AI Trend Daily Report',
+  '# AI 趋势日报',
   '',
-  '## Today\'s Highlights',
-  '(2-3 core findings, under 100 words, expanded based on the keyInsight field)',
+  '## 每日大事',
+  '（2-3 句核心发现，不超过 100 字，基于 keyInsight 字段扩写）',
   '',
-  '## Trending Dynamics',
-  '(Grouped by category. Each item format: `- [Title](url) — One-sentence summary`)',
+  '## 热点摘要',
+  '（按 category 分组展示。每条格式：`- [标题](url) — 一句话摘要`）',
   '',
   '### AI Agent',
-  '- [Title](url) — Summary',
+  '- [标题](url) — 摘要',
   '',
   '### LLM',
-  '- [Title](url) — Summary',
+  '- [标题](url) — 摘要',
   '',
-  '(Do the same for other categories, omit categories with no items)',
+  '（其他 category 同理，没有条目的 category 省略）',
   '',
-  '## New Arrivals',
-  '(Items with status=new, indicating they are collected for the first time)',
+  '## 首次发现',
+  '（status=new 的条目，说明首次被采集到）',
   '',
-  '## Continuously Active',
-  '(Items with status=active, indicating multiple consecutive appearances, list seenCount)',
+  '## 持续活跃',
+  '（status=active 的条目，说明连续多次出现，列出 seenCount）',
   '',
-  '## Deep Analysis',
-  '(Based on the deepDives field, 2-3 deeply analyzed items, accompanied by insight)',
+  '## 深度分析',
+  '（基于 deepDives 字段，2-3 个被深入分析过的条目，附带 insight）',
   '',
-  'Writing Requirements:',
-  '1. All source links use Markdown hyperlink format [title](url);',
-  '2. Do not fabricate sources, all links must come from the input data;',
-  '3. Concise and professional style, keep the whole text between 1500-3000 words;',
-  '4. Output Markdown content directly, do not wrap it in JSON or code blocks;',
-  '5. Do not add sections like "Issues to follow up on" without data support.',
-  '6. The entire report MUST be written in English.',
+  '写作要求：',
+  '1. 所有来源链接使用 Markdown 超链接格式 [title](url)；',
+  '2. 不编造来源，所有链接必须来自输入数据；',
+  '3. 风格简洁专业，全文控制在 1500-3000 字；',
+  '4. 直接输出 Markdown 内容，不要包裹在 JSON 或代码块中；',
+  '5. 不要添加 "后续关注问题" 之类没有数据支撑的章节。',
 ].join('\n');
 
 export function buildItemsJson(items: TrendSourceItem[], maxItems: number): string {
   return JSON.stringify(items.slice(0, maxItems).map(item => ({
     id: item.id, title: item.title, url: item.url,
     source: item.source, category: item.category,
-    sourceScore: item.score ?? 0, // Source site actual interaction data (HN upvotes / DevTo reactions / 0=No data)
+    sourceScore: item.score ?? 0, // 源站真实互动数据（HN upvotes / DevTo reactions / 0=无数据）
     summary: item.summary,
     isNew: item.isNew ?? false, seenCount: item.seenCount ?? 1,
   })));
@@ -111,44 +96,45 @@ export function buildItemsJson(items: TrendSourceItem[], maxItems: number): stri
 
 export function buildAnalystPrompt(items: TrendSourceItem[], maxItems: number, noNewItems?: boolean): string {
   const lines = [
-    'Please analyze the following AI news items, group them by category and judge their importance.',
-    'First, use the get_history_items tool to fetch historical data to determine which items are continuously active.',
-    'Then, select 2-3 of the most important items and use fetch_url to dive deeper into them.',
-    'Finally, output the analysis result as JSON.',
+    '请分析以下 AI 资讯条目，按 category 分组并判断重要性。',
+    '先使用 get_history_items 工具获取历史数据，判断哪些条目是持续活跃的。',
+    '然后选择 2-3 个最重要的条目使用 fetch_url 深入了解。',
+    '最后输出分析结果 JSON。',
     '',
-    '[IMPORTANT] You must provide a strict 0-100 comprehensive score for each news item (scores field):',
-    '  - Interaction Heat (20%): Refer to the sourceScore interaction data; if 0, estimate based on title attractiveness.',
-    '  - Technical & Business Value (50%): [Core Metric] Prioritize high scores for original in-depth research, industry firsts, major open-source breakthroughs, or important updates from renowned institutions; downgrade recycled/patched content.',
-    '  - Core Relevance (30%): Closeness to current frontier AI technologies (Agent/LLM/Multimodal/Infra).',
+    '【重要】你必须为每条保留的资讯打一个 0-100 的综合推荐分（scores 字段）：',
+    '  - 热度（30%）：参考 sourceScore（源站真实互动数据）+ 话题讨论量。sourceScore=0 表示无互动数据，需依据标题/内容判断。',
+    '  - 质量（40%）：原创深度内容、首发消息、技术突破 > 二手转述 > 营销软文。你已通过 fetch_url 阅读部分文章，请据此判断内容深度。',
+    '  - 相关度（30%）：与 AI 核心话题（Agent/LLM/多模态/开源模型/Infra）的直接贴合程度。',
     '',
-    '[Scoring Scale (Please strictly benchmark, do not give high scores casually)]',
-    '  90-100: Milestone events (e.g., top-tier model releases, disruptive technology open-sourcing).',
-    '  75-89: Major progress with high reference value (e.g., renowned framework updates, high-quality deep dives, important fundraising).',
-    '  60-74: General dynamics worth paying attention to (e.g., routine product iterations, insightful technical sharing).',
-    '  <60: News of low value or stale news that has already been widely disseminated.',
+    '评分参考：',
+    '  95-100: 划时代事件（如 GPT-5 发布）',
+    '  80-94: 重大进展/深度首发（如新模型开源、重要论文）',
+    '  65-79: 值得关注的行业动态/技术博客',
+    '  50-64: 一般性资讯/二手转述',
+    '  <50: 边缘相关（通常已被 Curator 过滤）',
     '',
   ];
   if (noNewItems) {
-    lines.push('⚠️ No new content was found in this collection, please focus on analyzing the continuously active items.', '');
+    lines.push('⚠️ 本次采集未发现新增内容，请重点分析持续活跃的条目。', '');
   }
-  lines.push(`Current news items: ${buildItemsJson(items, maxItems)}`);
+  lines.push(`当前资讯条目：${buildItemsJson(items, maxItems)}`);
   return lines.join('\n');
 }
 
 export function buildWriterPrompt(items: TrendSourceItem[], analysis: TrendAnalysis | null, maxItems: number, noNewItems?: boolean): string {
   const lines: string[] = [];
   if (analysis) {
-    lines.push('Please base your report on the structured analysis data below, strictly following your report structure template:', '', `Analysis data: ${JSON.stringify(analysis)}`);
+    lines.push('请基于以下结构化分析数据，严格按照你的报告结构模板撰写报告：', '', `分析数据：${JSON.stringify(analysis)}`);
   } else {
-    lines.push('The analyst failed to generate analysis data. Please write directly based on the following news items according to the report structure template:');
+    lines.push('分析师未能生成分析数据，请直接基于以下资讯条目按报告结构模板撰写：');
   }
   // Data source summary for the report header
   const sourceCounts = items.reduce((acc, i) => { const k = i.source || 'unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {} as Record<string, number>);
   const newCount = items.filter(i => i.isNew).length;
-  lines.push('', `Data source statistics: ${JSON.stringify(sourceCounts)}, ${newCount} new items`);
-  lines.push('', 'Original items (including url, category, aiSummary, used to fill report links and summaries):', buildItemsJson(items, maxItems));
+  lines.push('', `数据源统计：${JSON.stringify(sourceCounts)}，新增 ${newCount} 条`);
+  lines.push('', '原始条目（含 url、category、aiSummary，用于填充报告链接和摘要）：', buildItemsJson(items, maxItems));
   if (noNewItems) {
-    lines.push('', '⚠️ No new content was found this time. Note this in "Today\'s Highlights", and write "No new items this time" in the "New Arrivals" section.');
+    lines.push('', '⚠️ 本次未发现新增内容。在"今日要点"中注明，"新出现"章节写"本次无新增条目"。');
   }
   return lines.join('\n');
 }
