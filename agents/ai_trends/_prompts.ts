@@ -54,7 +54,7 @@ export const WRITER_INSTRUCTIONS = [
   '# AI 趋势日报',
   '',
   '## 每日大事',
-  '（3 句核心发现，不超过 100 字，基于 keyInsight 字段扩写）',
+  '（3 句核心发现，基于 keyInsight 字段扩写）',
   '',
   '## 热点摘要',
   '（按 category 分组展示。每条格式：`- [标题](url) — 一句话摘要`）',
