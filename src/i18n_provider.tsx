@@ -44,6 +44,8 @@ const translations = {
     noNewBanner: '当前监控周期内未发现显著增量动态，以下为系统持续追踪的核心情报',
     sourceLabel: '数据来源',
     score: '重要性评级',
+    expandSummary: '↓',
+    collapseSummary: '↑',
 
     // Sidebar
     reportsLabel: 'Research Archives',
@@ -148,6 +150,8 @@ const translations = {
     noNewBanner: 'No incremental updates detected in current cycle. Below is long-term topics.',
     sourceLabel: 'Source',
     score: 'Relevance Score',
+    expandSummary: '↓',
+    collapseSummary: '↑',
 
     // Sidebar
     reportsLabel: 'Research Archives',

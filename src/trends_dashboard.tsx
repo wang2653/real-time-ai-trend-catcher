@@ -132,6 +132,12 @@ const IconArrowRight = (p: IconProps) => (
 const IconExternal = (p: IconProps) => (
   <Icon {...p}><path d="M15 3h6v6" /><path d="M10 14L21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></Icon>
 );
+const IconChevronDown = (p: IconProps) => (
+  <Icon {...p}><polyline points="6 9 12 15 18 9" /></Icon>
+);
+const IconChevronUp = (p: IconProps) => (
+  <Icon {...p}><polyline points="18 15 12 9 6 15" /></Icon>
+);
 const IconInbox = (p: IconProps) => (
   <Icon {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></Icon>
 );
@@ -324,6 +330,60 @@ function LiveItemCard({ item, showScore }: { item: LiveItem; showScore: boolean 
         {showScore && item.score != null && <span>score {item.score}</span>}
       </div>
     </div>
+  );
+}
+
+/* ====================================
+   News Item Card (feed list)
+   ==================================== */
+function NewsCard({ item }: { item: TrendItem }) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+  const summary = itemSummary(item, t('fallbackSummary'));
+  const isLong = summary.length > 60;
+
+  const toggleExpand = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpanded(prev => !prev);
+  };
+
+  return (
+    <a
+      className={styles.newsCard}
+      href={item.url}
+      target="_blank"
+      rel="noreferrer"
+    >
+      <div className={styles.newsMain}>
+        <div className={styles.newsMetaTop}>
+          <span className={styles.sourceBadge}>{item.source}</span>
+          <span>{formatItemTime(item.publishedAt, t('unknownTimeLabel'))}</span>
+          {item.isNew && <span className={styles.newBadge}>NEW</span>}
+        </div>
+        <strong>{item.title}</strong>
+        <p className={expanded ? styles.newsSummaryExpanded : styles.newsSummaryClamped}>
+          {summary}
+        </p>
+        {isLong && (
+          <button
+            type="button"
+            className={styles.expandSummaryBtn}
+            onClick={toggleExpand}
+          >
+            <span>{expanded ? t('collapseSummary') : t('expandSummary')}</span>
+            {expanded ? <IconChevronUp size={11} /> : <IconChevronDown size={11} />}
+          </button>
+        )}
+      </div>
+      <div className={styles.newsSideMeta}>
+        <span>{item.category || 'AI'}</span>
+        <span>score {item.score ?? 0}</span>
+        <span>
+          {t('sourceLabel')} <IconExternal size={11} style={{ verticalAlign: '-1px', marginLeft: 2 }} />
+        </span>
+      </div>
+    </a>
   );
 }
 
@@ -895,30 +955,7 @@ export default function App() {
                     <span className={styles.feedGroupBadge}>{newItems.length}</span>
                   </div>
                   {newItems.map(item => (
-                    <a
-                      className={styles.newsCard}
-                      href={item.url}
-                      key={item.id}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <div className={styles.newsMain}>
-                        <div className={styles.newsMetaTop}>
-                          <span className={styles.sourceBadge}>{item.source}</span>
-                          <span>{formatItemTime(item.publishedAt, t('unknownTimeLabel'))}</span>
-                          {item.isNew && <span className={styles.newBadge}>NEW</span>}
-                        </div>
-                        <strong>{item.title}</strong>
-                        <p>{itemSummary(item, t('fallbackSummary'))}</p>
-                      </div>
-                      <div className={styles.newsSideMeta}>
-                        <span>{item.category || 'AI'}</span>
-                        <span>score {item.score ?? 0}</span>
-                        <span>
-                          {t('sourceLabel')} <IconExternal size={11} style={{ verticalAlign: '-1px', marginLeft: 2 }} />
-                        </span>
-                      </div>
-                    </a>
+                    <NewsCard key={item.id} item={item} />
                   ))}
                 </>
               )}
@@ -931,30 +968,7 @@ export default function App() {
                     <span className={styles.feedGroupBadge}>{recurringItems.length}</span>
                   </div>
                   {recurringItems.map(item => (
-                    <a
-                      className={styles.newsCard}
-                      href={item.url}
-                      key={item.id}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <div className={styles.newsMain}>
-                        <div className={styles.newsMetaTop}>
-                          <span className={styles.sourceBadge}>{item.source}</span>
-                          <span>{formatItemTime(item.publishedAt, t('unknownTimeLabel'))}</span>
-                          {item.isNew && <span className={styles.newBadge}>NEW</span>}
-                        </div>
-                        <strong>{item.title}</strong>
-                        <p>{itemSummary(item, t('fallbackSummary'))}</p>
-                      </div>
-                      <div className={styles.newsSideMeta}>
-                        <span>{item.category || 'AI'}</span>
-                        <span>score {item.score ?? 0}</span>
-                        <span>
-                          {t('sourceLabel')} <IconExternal size={11} style={{ verticalAlign: '-1px', marginLeft: 2 }} />
-                        </span>
-                      </div>
-                    </a>
+                    <NewsCard key={item.id} item={item} />
                   ))}
                 </>
               )}
