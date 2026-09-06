@@ -301,7 +301,8 @@ async function run() {
     // Verify presence of category distribution section
     assert.ok(injected.includes('## Category Distribution'));
     assert.ok(injected.includes('```chart:category-donut'));
-    assert.ok(injected.includes('| Category | Items | Current Share | Cycle Delta |'));
+    assert.ok(injected.includes('| Category | Items | Current Share | Share Shift vs. Prior Period |'));
+    assert.ok(injected.includes('— (Initial Period)'));
 
     // Verify ordering: Highlights -> Category Distribution -> Trending Dynamics
     const highlightsIndex = injected.indexOf('## Today\'s Highlights');
@@ -317,7 +318,7 @@ async function run() {
       'Category Distribution must be placed strictly between Today\'s Highlights and Trending Dynamics',
     );
 
-    // Verify Chinese markdown support
+    // Verify pure English section is also injected into Chinese report between 每日综述 and 热点摘要
     const cnMarkdown = [
       '# AI 趋势日报',
       '',
@@ -330,15 +331,19 @@ async function run() {
       '- [智能体平台](https://example.com/1) — 摘要',
     ].join('\n');
 
-    const cnInjected = injectCategoryDistributionVisualization(cnMarkdown, currentItems, []);
+    const cnInjected = injectCategoryDistributionVisualization(cnMarkdown, currentItems, [
+      { id: 'h1', title: 'Prior Agent', url: 'https://example.com/h1', category: 'AI Agent' },
+      { id: 'h2', title: 'Prior LLM', url: 'https://example.com/h2', category: 'LLM' },
+    ]);
     const cnSummaryIndex = cnInjected.indexOf('## 每日综述');
-    const cnChartIndex = cnInjected.indexOf('## 分类分布环形图');
+    const cnChartIndex = cnInjected.indexOf('## Category Distribution');
     const cnDynamicsIndex = cnInjected.indexOf('## 热点摘要');
 
     assert.ok(cnSummaryIndex !== -1);
     assert.ok(cnChartIndex !== -1);
     assert.ok(cnDynamicsIndex !== -1);
     assert.ok(cnSummaryIndex < cnChartIndex && cnChartIndex < cnDynamicsIndex);
+    assert.ok(cnInjected.includes('vs. prior (was '));
 
     // Verify idempotency (repeated call replaces in place, does not duplicate)
     const doubleInjected = injectCategoryDistributionVisualization(injected, currentItems, []);

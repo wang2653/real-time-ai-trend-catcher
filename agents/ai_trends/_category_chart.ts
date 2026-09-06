@@ -122,38 +122,38 @@ export function calculateCategoryDistribution(
 }
 
 /**
- * Formats delta badge text with direction indicator (e.g. "+5.2% ▲", "-3.1% ▼", "0.0%")
+ * Formats share shift text with direction indicator and prior period context.
+ * Clearly communicates that this represents the share shift compared to the prior period.
+ * e.g. "+5.0% ▲ vs. prior (was 35.0%)", "-3.1% ▼ vs. prior (was 28.1%)", "— (Initial Period)"
  */
-function formatDeltaText(delta: number, hasHistory: boolean): string {
-  if (!hasHistory) return '— (Baseline)';
-  if (delta > 0) return `+${delta.toFixed(1)}% ▲`;
-  if (delta < 0) return `${delta.toFixed(1)}% ▼`;
-  return '0.0%';
+function formatDeltaText(delta: number, previousShare: number, hasHistory: boolean): string {
+  if (!hasHistory) return '— (Initial Period)';
+  if (delta > 0) return `+${delta.toFixed(1)}% ▲ vs. prior (was ${previousShare.toFixed(1)}%)`;
+  if (delta < 0) return `${delta.toFixed(1)}% ▼ vs. prior (was ${previousShare.toFixed(1)}%)`;
+  return `0.0% vs. prior (was ${previousShare.toFixed(1)}%)`;
 }
 
 /**
- * Builds the Markdown section string for Category Distribution.
+ * Builds the Markdown section string for Category Distribution in pure English.
  * Includes both the machine-readable chart block (for React/frontend rendering)
  * and a standard Markdown comparison table (for raw text / fallback reading).
  */
 export function buildCategoryDistributionMarkdown(
   stats: CategoryDistributionStats,
-  isChinese: boolean = false,
 ): string {
-  const sectionTitle = isChinese ? '## 分类分布环形图' : '## Category Distribution';
-  const subtitle = isChinese
-    ? '（AI Agent、LLM、Multimodal、Infra 核心赛道在当前周期中的占比分布及环比变化）'
-    : '(Distribution & cycle-over-cycle share change for AI Agent, LLM, Multimodal, and Infra)';
+  const sectionTitle = '## Category Distribution';
+  const subtitle = '(Breakdown of AI Agent, LLM, Multimodal, and Infra in the current period and share shift vs. previous period)';
 
   const chartPayload = JSON.stringify(stats, null, 2);
 
   const hasHistory = stats.totalPrevious > 0;
-  const tableHeader = isChinese
-    ? '| 分类 (Category) | 当前条数 | 当前占比 | 周期变化 (Δ) |\n| :--- | :---: | :---: | :---: |'
-    : '| Category | Items | Current Share | Cycle Delta |\n| :--- | :---: | :---: | :---: |';
+  const tableHeader = [
+    '| Category | Items | Current Share | Share Shift vs. Prior Period |',
+    '| :--- | :---: | :---: | :---: |',
+  ].join('\n');
 
   const tableRows = stats.categories.map(c => {
-    const deltaStr = formatDeltaText(c.delta, hasHistory);
+    const deltaStr = formatDeltaText(c.delta, c.previousShare, hasHistory);
     return `| **${c.name}** | ${c.count} | ${c.share.toFixed(1)}% | \`${deltaStr}\` |`;
   }).join('\n');
 
@@ -189,11 +189,8 @@ export function injectCategoryDistributionVisualization(
 ): string {
   if (!markdown) return markdown;
 
-  // Determine language based on existing markdown headers
-  const isChinese = /##\s*(每日综述|今日趋势概览|热点摘要|重点趋势)/.test(markdown);
-
   const stats = calculateCategoryDistribution(currentItems, historyItems);
-  const visualBlock = buildCategoryDistributionMarkdown(stats, isChinese);
+  const visualBlock = buildCategoryDistributionMarkdown(stats);
 
   // If already contains the category distribution section, replace it in place
   const existingSectionRegex = /##\s*(Category Distribution|分类分布环形图)[\s\S]*?(?=(?:\n##\s+)|$)/i;
