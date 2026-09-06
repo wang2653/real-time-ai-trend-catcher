@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { filterAiItems } from '../_data_sources.js';
+import { filterAiItems, inferCategory } from '../_data_sources.js';
 import { generateFallbackReport } from '../_report_helpers.js';
 import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_fallback_storage.js';
 import { loadHistoryFromMemory, loadLatestReportFromMemory, loadReportFromMemory, saveReportToMemory } from '../_memory_store.js';
@@ -47,12 +47,59 @@ async function run() {
     assert.equal(clientOptions.baseURL, 'https://gateway.example.com/v1');
   });
 
-  await runTest('Filtering AI-related articles from a data feed', () => {
-    const filtered = filterAiItems([
-      { id: '1', title: 'OpenAI launches new AI agents SDK', url: 'https://example.com/ai' },
-      { id: '2', title: 'Best sourdough bread recipes', url: 'https://example.com/bread' },
-    ]);
-    assert.deepEqual(filtered.map((item: TrendSourceItem) => item.id), ['1']);
+  await runTest('Filtering AI-related articles and rejecting substring false positives', () => {
+    const candidates: TrendSourceItem[] = [
+      // Valid AI articles
+      { id: 'ai_1', title: 'OpenAI launches new AI agents SDK', url: 'https://example.com/ai' },
+      { id: 'ai_2', title: 'Building a RAG pipeline with MCP server', url: 'https://example.com/rag' },
+      { id: 'ai_3', title: 'State of modern LLMs in 2026', url: 'https://example.com/llm' },
+      { id: 'ai_4', title: '全新大模型智能体落地实践', url: 'https://example.com/cn-agent' },
+      { id: 'ai_5', title: '体验最新的AI应用与工具', url: 'https://example.com/cn-ai-app' },
+      { id: 'ai_6', title: 'Why Cursor is an AI-powered editor', url: 'https://cursor.com/editor' },
+
+      // False-positive noise words containing "ai" substring
+      { id: 'noise_email', title: 'How to configure your email server', url: 'https://example.com/email' },
+      { id: 'noise_domain', title: 'Choosing the best domain name for your business', url: 'https://example.com/domain' },
+      { id: 'noise_chain', title: 'Supply chain management strategies in manufacturing', url: 'https://example.com/chain' },
+      { id: 'noise_maintain', title: 'How to maintain your open-source projects', url: 'https://example.com/maintain' },
+      { id: 'noise_wait', title: 'Why you should never wait to refactor technical debt', url: 'https://example.com/wait' },
+      { id: 'noise_claim', title: 'Insurance claim processing automation guide', url: 'https://example.com/claim' },
+      { id: 'noise_straight', title: 'Getting straight to the point in tech presentations', url: 'https://example.com/straight' },
+      { id: 'noise_bread', title: 'Best sourdough bread recipes', url: 'https://example.com/bread' },
+      { id: 'noise_container', title: 'Container networking deep dive with Linux namespaces', url: 'https://example.com/container' },
+    ];
+
+    const filtered = filterAiItems(candidates);
+    const matchedIds = filtered.map((item: TrendSourceItem) => item.id);
+
+    // Only AI articles should pass
+    assert.deepEqual(matchedIds, ['ai_1', 'ai_2', 'ai_3', 'ai_4', 'ai_5', 'ai_6']);
+  });
+
+  await runTest('Preventing false category inference on substring matches', () => {
+    // 'dragon' contains 'rag', but must not be classified as 'AI Infra'
+    const nonInfraItem: TrendSourceItem = {
+      id: 'dragon_1',
+      title: 'Dragon warrior quest updates',
+      url: 'https://example.com/dragon',
+    };
+    assert.equal(inferCategory(nonInfraItem), 'AI Industry');
+
+    // Genuine RAG should be classified as 'AI Infra'
+    const ragItem: TrendSourceItem = {
+      id: 'rag_1',
+      title: 'High throughput RAG retrieval architectures',
+      url: 'https://example.com/rag',
+    };
+    assert.equal(inferCategory(ragItem), 'AI Infra');
+
+    // Genuine MCP / Agent item
+    const agentItem: TrendSourceItem = {
+      id: 'agent_1',
+      title: 'LangGraph multi-agent orchestration with MCP tools',
+      url: 'https://example.com/agent',
+    };
+    assert.equal(inferCategory(agentItem), 'AI Agent');
   });
 
   await runTest('Sanitizing HTML text and generating fallback summaries', async () => {

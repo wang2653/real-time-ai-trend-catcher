@@ -3,6 +3,8 @@ export const AI_KEYWORDS = [
   'agent',
   'agents',
   'llm',
+  'llms',
+  'genai',
   'large language model',
   'openai',
   'anthropic',
@@ -19,6 +21,7 @@ export const AI_KEYWORDS = [
   'vector database',
   'model context protocol',
   'mcp',
+  'mcps',
   // Chinese keywords
   '人工智能',
   '大模型',
@@ -36,12 +39,71 @@ export const AI_KEYWORDS = [
 ];
 
 export const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  'AI Agent': ['agent', 'agents', 'langgraph', 'deepagents', 'mcp', 'tool calling'],
-  LLM: ['llm', 'large language model', 'openai', 'anthropic', 'claude', 'gemini', 'deepseek'],
+  'AI Agent': ['agent', 'agents', 'langgraph', 'deepagents', 'mcp', 'mcps', 'tool calling'],
+  LLM: ['llm', 'llms', 'large language model', 'openai', 'anthropic', 'claude', 'gemini', 'deepseek'],
   Multimodal: ['multimodal', 'vision', 'audio', 'video', 'image generation'],
   'Open Source Model': ['open source', 'hugging face', 'weights', 'model release'],
   'AI Infra': ['inference', 'gpu', 'vector', 'rag', 'latency', 'serving', 'deployment'],
 };
+
+/**
+ * Checks if a keyword contains any CJK (Chinese) characters.
+ */
+export function isChineseKeyword(keyword: string): boolean {
+  return /[\u4e00-\u9fa5]/.test(keyword);
+}
+
+/**
+ * Escapes regex special characters in a string.
+ */
+export function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Compiles a list of keywords into an optimized matcher function.
+ * English words/abbreviations use word boundaries (\b) to avoid substring false positives
+ * (such as 'email', 'domain', 'maintain', 'chain' falsely matching 'ai').
+ * Chinese keywords use substring matching.
+ */
+export function createKeywordMatcher(keywords: string[]): (text: string) => boolean {
+  const chineseKeywords: string[] = [];
+  const englishPatterns: string[] = [];
+
+  for (const raw of keywords) {
+    const keyword = raw.trim();
+    if (!keyword) continue;
+
+    if (isChineseKeyword(keyword)) {
+      chineseKeywords.push(keyword.toLowerCase());
+    } else {
+      const startBoundary = /^\w/.test(keyword) ? '\\b' : '';
+      const endBoundary = /\w$/.test(keyword) ? '\\b' : '';
+      englishPatterns.push(`${startBoundary}${escapeRegExp(keyword)}${endBoundary}`);
+    }
+  }
+
+  let englishRegex: RegExp | null = null;
+  if (englishPatterns.length > 0) {
+    englishRegex = new RegExp(`(?:${englishPatterns.join('|')})`, 'i');
+  }
+
+  return (text: string): boolean => {
+    if (!text) return false;
+    // Check English word boundary regex
+    if (englishRegex && englishRegex.test(text)) {
+      return true;
+    }
+    // Check Chinese substring matches
+    if (chineseKeywords.length > 0) {
+      const lower = text.toLowerCase();
+      return chineseKeywords.some(kw => lower.includes(kw));
+    }
+    return false;
+  };
+}
+
+export const isAiContent = createKeywordMatcher(AI_KEYWORDS);
 
 export const extractScript = `
       JSON.stringify(
@@ -60,3 +122,4 @@ export const extractScript = `
         ).slice(0, 20)
       );
     `;
+

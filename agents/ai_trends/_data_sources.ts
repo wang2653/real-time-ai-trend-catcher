@@ -1,5 +1,5 @@
 import type { TrendSourceItem } from './_pipeline_types.js';
-import { AI_KEYWORDS, CATEGORY_KEYWORDS, extractScript } from './_keyword.js';
+import { AI_KEYWORDS, CATEGORY_KEYWORDS, createKeywordMatcher, extractScript } from './_keyword.js';
 
 // return current iso time string
 function nowIso(): string {
@@ -59,33 +59,41 @@ export function normalizeText(item: TrendSourceItem): string {
   return [item.title, item.summary, item.url].filter(Boolean).join(' ').toLowerCase();
 }
 
+const CATEGORY_MATCHERS: Array<{ category: string; matches: (text: string) => boolean }> =
+  Object.entries(CATEGORY_KEYWORDS).map(([category, keywords]) => ({
+    category,
+    matches: createKeywordMatcher(keywords),
+  }));
+
 // infer category from text
 export function inferCategory(item: TrendSourceItem): string {
   const text = normalizeText(item);
-// match keywords for each category
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some(keyword => text.includes(keyword))) return category;
+  // match keywords for each category using word boundary / substring matching
+  for (const { category, matches } of CATEGORY_MATCHERS) {
+    if (matches(text)) return category;
   }
-// fallback category
+  // fallback category
   return 'AI Industry';
 }
 
+const defaultAiMatcher = createKeywordMatcher(AI_KEYWORDS);
+
 // filter items by keywords
 export function filterAiItems(items: TrendSourceItem[], keywords: string[] = AI_KEYWORDS): TrendSourceItem[] {
-  const activeKeywords = keywords.map(keyword => keyword.toLowerCase());
+  const matchesKeyword = keywords === AI_KEYWORDS ? defaultAiMatcher : createKeywordMatcher(keywords);
   const seen = new Set<string>();
   const filtered: TrendSourceItem[] = [];
 
-// process each item
+  // process each item
   for (const item of items) {
     const text = normalizeText(item);
-// skip if no keywords match
-    if (!activeKeywords.some(keyword => text.includes(keyword))) continue;
-// skip duplicates
+    // skip if no keywords match (word boundary for English acronyms/terms, substring for Chinese)
+    if (!matchesKeyword(text)) continue;
+    // skip duplicates
     const key = String(item.url || item.title || item.id).toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-// enrich item data
+    // enrich item data
     const enriched = { ...item, summary: cleanText(item.summary), category: item.category ?? inferCategory(item) };
     filtered.push({ ...enriched, aiSummary: buildFallbackAiSummary(enriched) });
   }
