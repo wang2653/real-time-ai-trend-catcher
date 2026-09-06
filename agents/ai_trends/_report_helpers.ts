@@ -1,4 +1,5 @@
 import type { TrendGroup, TrendReport, TrendSourceItem } from './_pipeline_types.js';
+import { injectCategoryDistributionVisualization } from './_category_chart.js';
 
 export function utcNow(): string {
   return new Date().toISOString();
@@ -74,9 +75,15 @@ export function generateMarkdown(items: TrendSourceItem[], generatedAt: string):
   return { markdown: lines.join('\n'), trends };
 }
 
-export function generateFallbackReport(items: TrendSourceItem[], runId: string, trigger = 'manual'): TrendReport {
+export function generateFallbackReport(
+  items: TrendSourceItem[],
+  runId: string,
+  trigger = 'manual',
+  historyItems: TrendSourceItem[] = [],
+): TrendReport {
   const generatedAt = utcNow();
   const { markdown, trends } = generateMarkdown(items, generatedAt);
+  const markdownWithChart = injectCategoryDistributionVisualization(markdown, items, historyItems);
   return {
     runId,
     status: 'success',
@@ -84,7 +91,7 @@ export function generateFallbackReport(items: TrendSourceItem[], runId: string, 
     generatedAt,
     itemCount: items.length,
     summary: trends[0]?.summary || '暂无满足条件的 AI 趋势内容。',
-    reportMarkdown: markdown,
+    reportMarkdown: markdownWithChart,
     trends,
     items,
   };

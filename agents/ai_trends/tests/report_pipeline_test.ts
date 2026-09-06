@@ -8,6 +8,7 @@ import { generateFallbackReport } from '../_report_helpers.js';
 import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_fallback_storage.js';
 import { loadHistoryFromMemory, loadLatestReportFromMemory, loadReportFromMemory, saveReportToMemory } from '../_memory_store.js';
 import type { TrendReport, TrendSourceItem } from '../_pipeline_types.js';
+import { calculateCategoryDistribution, injectCategoryDistributionVisualization, normalizeCoreCategory } from '../_category_chart.js';
 
 class FakeMemory {
   messages: Array<{ content: string; metadata: Record<string, unknown>; createdAt: number }> = [];
@@ -193,6 +194,156 @@ async function run() {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  await runTest('Normalizing categories into AI Agent, LLM, Multimodal, and Infra', () => {
+    assert.equal(normalizeCoreCategory('AI Agent'), 'AI Agent');
+    assert.equal(normalizeCoreCategory('AutoGPT agent framework'), 'AI Agent');
+    assert.equal(normalizeCoreCategory('智能体开发实践'), 'AI Agent');
+    assert.equal(normalizeCoreCategory('MCP server tools'), 'AI Agent');
+
+    assert.equal(normalizeCoreCategory('LLM'), 'LLM');
+    assert.equal(normalizeCoreCategory('Large Language Model updates'), 'LLM');
+    assert.equal(normalizeCoreCategory('大语言模型测评'), 'LLM');
+
+    assert.equal(normalizeCoreCategory('Multimodal'), 'Multimodal');
+    assert.equal(normalizeCoreCategory('Vision audio video generator'), 'Multimodal');
+    assert.equal(normalizeCoreCategory('多模态落地应用'), 'Multimodal');
+
+    assert.equal(normalizeCoreCategory('AI Infra'), 'Infra');
+    assert.equal(normalizeCoreCategory('Infra'), 'Infra');
+    assert.equal(normalizeCoreCategory('RAG vector database serving'), 'Infra');
+    assert.equal(normalizeCoreCategory('GPU inference latency'), 'Infra');
+
+    assert.equal(normalizeCoreCategory('Open Source Model'), 'Other');
+    assert.equal(normalizeCoreCategory('Random news'), 'Other');
+    assert.equal(normalizeCoreCategory(undefined), 'Other');
+  });
+
+  await runTest('Calculating pure statistical category distribution and cycle-over-cycle share change', () => {
+    const currentItems: TrendSourceItem[] = [
+      { id: '1', title: 'Agent 1', url: 'https://example.com/1', category: 'AI Agent' },
+      { id: '2', title: 'Agent 2', url: 'https://example.com/2', category: 'AI Agent' },
+      { id: '3', title: 'Agent 3', url: 'https://example.com/3', category: 'AI Agent' },
+      { id: '4', title: 'Agent 4', url: 'https://example.com/4', category: 'AI Agent' }, // 4/10 = 40.0%
+      { id: '5', title: 'LLM 1', url: 'https://example.com/5', category: 'LLM' },
+      { id: '6', title: 'LLM 2', url: 'https://example.com/6', category: 'LLM' },
+      { id: '7', title: 'LLM 3', url: 'https://example.com/7', category: 'LLM' }, // 3/10 = 30.0%
+      { id: '8', title: 'Vision 1', url: 'https://example.com/8', category: 'Multimodal' },
+      { id: '9', title: 'Vision 2', url: 'https://example.com/9', category: 'Multimodal' }, // 2/10 = 20.0%
+      { id: '10', title: 'RAG 1', url: 'https://example.com/10', category: 'AI Infra' }, // 1/10 = 10.0%
+    ];
+
+    const historyItems: TrendSourceItem[] = [
+      { id: 'h1', title: 'Agent h1', url: 'https://example.com/h1', category: 'AI Agent' },
+      { id: 'h2', title: 'Agent h2', url: 'https://example.com/h2', category: 'AI Agent' }, // 2/8 = 25.0%
+      { id: 'h3', title: 'LLM h1', url: 'https://example.com/h3', category: 'LLM' },
+      { id: 'h4', title: 'LLM h2', url: 'https://example.com/h4', category: 'LLM' },
+      { id: 'h5', title: 'LLM h3', url: 'https://example.com/h5', category: 'LLM' },
+      { id: 'h6', title: 'LLM h4', url: 'https://example.com/h6', category: 'LLM' }, // 4/8 = 50.0%
+      { id: 'h7', title: 'Vision h1', url: 'https://example.com/h7', category: 'Multimodal' }, // 1/8 = 12.5%
+      { id: 'h8', title: 'Infra h1', url: 'https://example.com/h8', category: 'AI Infra' }, // 1/8 = 12.5%
+    ];
+
+    const stats = calculateCategoryDistribution(currentItems, historyItems);
+    assert.equal(stats.totalCurrent, 10);
+    assert.equal(stats.totalPrevious, 8);
+
+    const agent = stats.categories.find(c => c.name === 'AI Agent');
+    const llm = stats.categories.find(c => c.name === 'LLM');
+    const multi = stats.categories.find(c => c.name === 'Multimodal');
+    const infra = stats.categories.find(c => c.name === 'Infra');
+
+    assert.equal(agent?.count, 4);
+    assert.equal(agent?.share, 40.0);
+    assert.equal(agent?.previousShare, 25.0);
+    assert.equal(agent?.delta, 15.0); // 40.0 - 25.0 = +15.0%
+
+    assert.equal(llm?.count, 3);
+    assert.equal(llm?.share, 30.0);
+    assert.equal(llm?.previousShare, 50.0);
+    assert.equal(llm?.delta, -20.0); // 30.0 - 50.0 = -20.0%
+
+    assert.equal(multi?.count, 2);
+    assert.equal(multi?.share, 20.0);
+    assert.equal(multi?.previousShare, 12.5);
+    assert.equal(multi?.delta, 7.5); // 20.0 - 12.5 = +7.5%
+
+    assert.equal(infra?.count, 1);
+    assert.equal(infra?.share, 10.0);
+    assert.equal(infra?.previousShare, 12.5);
+    assert.equal(infra?.delta, -2.5); // 10.0 - 12.5 = -2.5%
+  });
+
+  await runTest('Injecting Category Distribution strictly between Today\'s Highlights and Trending Dynamics', () => {
+    const originalMarkdown = [
+      '# AI Trend Daily Report',
+      '',
+      '## Today\'s Highlights',
+      'Agents and Multimodal surged this cycle with multiple breakout tools.',
+      '',
+      '## Trending Dynamics',
+      '',
+      '### AI Agent',
+      '- [Claude Computer Use](https://example.com/1) — OS Agent breakthroughs',
+      '',
+      '### LLM',
+      '- [DeepSeek V3](https://example.com/2) — Open weights frontier model',
+    ].join('\n');
+
+    const currentItems: TrendSourceItem[] = [
+      { id: '1', title: 'Agent', url: 'https://example.com/1', category: 'AI Agent' },
+      { id: '2', title: 'LLM', url: 'https://example.com/2', category: 'LLM' },
+    ];
+
+    const injected = injectCategoryDistributionVisualization(originalMarkdown, currentItems, []);
+
+    // Verify presence of category distribution section
+    assert.ok(injected.includes('## Category Distribution'));
+    assert.ok(injected.includes('```chart:category-donut'));
+    assert.ok(injected.includes('| Category | Items | Current Share | Cycle Delta |'));
+
+    // Verify ordering: Highlights -> Category Distribution -> Trending Dynamics
+    const highlightsIndex = injected.indexOf('## Today\'s Highlights');
+    const categoryChartIndex = injected.indexOf('## Category Distribution');
+    const trendingDynamicsIndex = injected.indexOf('## Trending Dynamics');
+
+    assert.ok(highlightsIndex !== -1, 'Today\'s Highlights must exist');
+    assert.ok(categoryChartIndex !== -1, 'Category Distribution must exist');
+    assert.ok(trendingDynamicsIndex !== -1, 'Trending Dynamics must exist');
+
+    assert.ok(
+      highlightsIndex < categoryChartIndex && categoryChartIndex < trendingDynamicsIndex,
+      'Category Distribution must be placed strictly between Today\'s Highlights and Trending Dynamics',
+    );
+
+    // Verify Chinese markdown support
+    const cnMarkdown = [
+      '# AI 趋势日报',
+      '',
+      '## 每日综述',
+      '大模型智能体与多模态在生产场景取得重大突破。',
+      '',
+      '## 热点摘要',
+      '',
+      '### AI Agent',
+      '- [智能体平台](https://example.com/1) — 摘要',
+    ].join('\n');
+
+    const cnInjected = injectCategoryDistributionVisualization(cnMarkdown, currentItems, []);
+    const cnSummaryIndex = cnInjected.indexOf('## 每日综述');
+    const cnChartIndex = cnInjected.indexOf('## 分类分布环形图');
+    const cnDynamicsIndex = cnInjected.indexOf('## 热点摘要');
+
+    assert.ok(cnSummaryIndex !== -1);
+    assert.ok(cnChartIndex !== -1);
+    assert.ok(cnDynamicsIndex !== -1);
+    assert.ok(cnSummaryIndex < cnChartIndex && cnChartIndex < cnDynamicsIndex);
+
+    // Verify idempotency (repeated call replaces in place, does not duplicate)
+    const doubleInjected = injectCategoryDistributionVisualization(injected, currentItems, []);
+    const countMatches = (doubleInjected.match(/## Category Distribution/g) || []).length;
+    assert.equal(countMatches, 1, 'Should not produce duplicate Category Distribution sections');
   });
 }
 

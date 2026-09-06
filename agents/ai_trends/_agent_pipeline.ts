@@ -6,6 +6,7 @@ import { z } from 'zod';
 // import local types and helper functions for pipeline
 import type { TrendLibraryItem } from './_item_library.js';
 import { generateFallbackReport, utcNow } from './_report_helpers.js';
+import { injectCategoryDistributionVisualization } from './_category_chart.js';
 import type {
   CuratorOutput,
   FinishedReport,
@@ -339,9 +340,17 @@ function buildTrendGroups(items: TrendSourceItem[]): TrendGroup[] {
 }
 
 // form standard report object from raw markdown text
-function assembleReportFromWriter(items: TrendSourceItem[], markdown: string, runId: string, trigger: string): TrendReport {
+function assembleReportFromWriter(
+  items: TrendSourceItem[],
+  historyItems: TrendSourceItem[],
+  markdown: string,
+  runId: string,
+  trigger: string,
+): TrendReport {
+  // inject pure statistical category distribution donut chart
+  const reportMarkdown = injectCategoryDistributionVisualization(markdown, items, historyItems);
   // extract the first readable line to use as summary
-  const firstLine = markdown.split('\n').find(l => l.trim() && !l.startsWith('#'))?.trim() || '';
+  const firstLine = reportMarkdown.split('\n').find(l => l.trim() && !l.startsWith('#'))?.trim() || '';
   const summary = firstLine.slice(0, CONFIG.REPORT_SUMMARY_MAX_CHARS) || `${items.length} 条 AI 资讯趋势分析`;
   // return fully shaped trend report
   return {
@@ -351,14 +360,20 @@ function assembleReportFromWriter(items: TrendSourceItem[], markdown: string, ru
     generatedAt: utcNow(),
     itemCount: items.length,
     summary,
-    reportMarkdown: markdown,
+    reportMarkdown,
     trends: buildTrendGroups(items),
     items,
   };
 }
 
 // build report from json analysis output if markdown writing fails
-function assembleReportFromAnalysis(items: TrendSourceItem[], analysis: TrendAnalysis, runId: string, trigger: string): TrendReport {
+function assembleReportFromAnalysis(
+  items: TrendSourceItem[],
+  historyItems: TrendSourceItem[],
+  analysis: TrendAnalysis,
+  runId: string,
+  trigger: string,
+): TrendReport {
   const lines = ['# AI 趋势日报', '', `> ${analysis.keyInsight}`, ''];
 
   // Group by category from analyst output
@@ -391,8 +406,10 @@ function assembleReportFromAnalysis(items: TrendSourceItem[], analysis: TrendAna
   }
 
   // inject built content into fallback shape
-  const report = generateFallbackReport(items, runId, trigger);
-  report.reportMarkdown = lines.join('\n');
+  const rawMarkdown = lines.join('\n');
+  const reportMarkdown = injectCategoryDistributionVisualization(rawMarkdown, items, historyItems);
+  const report = generateFallbackReport(items, runId, trigger, historyItems);
+  report.reportMarkdown = reportMarkdown;
   report.summary = analysis.keyInsight;
   report.agentWarning = 'Writer agent failed; report generated from analyst output';
   return report;
@@ -839,7 +856,7 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
       console.log(`[pipeline] Writer done (${d2}s): ${detail}`);
       emit({ stage: 'writer', status: 'done', duration: d2, detail });
       // return successfully crafted end output object
-      return { report: assembleReportFromWriter(enrichedItems, markdown, runId, trigger), stages };
+      return { report: assembleReportFromWriter(enrichedItems, historyItems, markdown, runId, trigger), stages };
     }
     // log empty text validation cases
     console.log(`[pipeline] Writer done (${d2}s): output too short`);
@@ -861,13 +878,13 @@ export async function runAgentPipeline(input: PipelineInput): Promise<{
   // use structured chunks when generated prose report isn't present
   if (analysis) {
     console.log('[pipeline] Falling back to analyst-based report');
-    return { report: assembleReportFromAnalysis(enrichedItems, analysis, runId, trigger), stages };
+    return { report: assembleReportFromAnalysis(enrichedItems, historyItems, analysis, runId, trigger), stages };
   }
 
   // ── Ultimate fallback ───────────────────────────────────────────
   // dump items directly via system backup tool
   console.log('[pipeline] All agents failed, using code-generated fallback');
-  const fallback = generateFallbackReport(enrichedItems, runId, trigger);
+  const fallback = generateFallbackReport(enrichedItems, runId, trigger, historyItems);
   fallback.agentWarning = stages.error || 'All agents failed';
   return { report: fallback, stages };
 }
