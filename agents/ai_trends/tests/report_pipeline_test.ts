@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { filterAiItems, inferCategory } from '../_data_sources.js';
+import { filterAiItems, inferCategory, collectJiqizhixin, collectSources } from '../_data_sources.js';
 import { generateFallbackReport } from '../_report_helpers.js';
 import { loadHistory, loadLatestReport, loadReport, saveReport } from '../_fallback_storage.js';
 import { loadHistoryFromMemory, loadLatestReportFromMemory, loadReportFromMemory, saveReportToMemory } from '../_memory_store.js';
@@ -349,6 +349,190 @@ async function run() {
     const doubleInjected = injectCategoryDistributionVisualization(injected, currentItems, []);
     const countMatches = (doubleInjected.match(/## Category Distribution/g) || []).length;
     assert.equal(countMatches, 1, 'Should not produce duplicate Category Distribution sections');
+  });
+
+  await runTest('Parsing Jiqizhixin (机器之心) Parse.bot API response format', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      const mockResponse = {
+        status: 'success',
+        data: {
+          success: true,
+          articles: [
+            {
+              id: 'art-001',
+              slug: '2026-06-10-13',
+              title: '阿里搞了个免费报志愿Agent，40万AI考生提前把坑踩完了',
+              author: '机器之心',
+              source: '机器之心',
+              content: '编辑｜杨文、泽南 Agent 这个词在高校志愿填报场景落地实践...',
+              tagList: ['阿里巴巴', '高考志愿填报 Agent', '千问App'],
+              category: 'industry',
+              publishedAt: '2026/06/10 21:03',
+              coverImageUrl: 'https://image.jiqizhixin.com/uploads/article/cover.jpg',
+            },
+            {
+              id: 'art-002',
+              slug: '2026-06-11-01',
+              title: 'DeepSeek-V3 全新架构大语言模型技术全景分析',
+              author: '机器之心',
+              source: '机器之心',
+              content: '深度解析 DeepSeek 开源大模型与混合专家架构创新...',
+              publishedAt: '2026-06-11T10:00:00.000Z',
+            },
+          ],
+          totalCount: 29942,
+        },
+      };
+
+      let requestedHeaders: Record<string, string> = {};
+      let requestedUrl = '';
+
+      globalThis.fetch = async (input: any, init?: any) => {
+        requestedUrl = String(input);
+        requestedHeaders = init?.headers || {};
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockResponse,
+        } as any;
+      };
+
+      const items = await collectJiqizhixin(10, 'test-parse-key');
+      assert.equal(items.length, 2);
+      assert.equal(requestedHeaders['X-API-Key'], 'test-parse-key');
+      assert.ok(requestedUrl.includes('get_article_list'));
+
+      const first = items[0];
+      assert.equal(first.id, 'jiqizhixin_2026-06-10-13');
+      assert.equal(first.source, '机器之心');
+      assert.equal(first.title, '阿里搞了个免费报志愿Agent，40万AI考生提前把坑踩完了');
+      assert.equal(first.url, 'https://www.jiqizhixin.com/articles/2026-06-10-13');
+      assert.ok(first.publishedAt && first.publishedAt.startsWith('2026-06-10'));
+      assert.ok(first.summary && first.summary.includes('Agent 这个词'));
+
+      const second = items[1];
+      assert.equal(second.id, 'jiqizhixin_2026-06-11-01');
+      assert.equal(second.source, '机器之心');
+      assert.equal(second.url, 'https://www.jiqizhixin.com/articles/2026-06-11-01');
+      assert.equal(second.publishedAt, '2026-06-11T10:00:00.000Z');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  await runTest('Graceful handling of missing PARSE_API_KEY and 401 unauthorized errors', async () => {
+    // 1. Missing API key returns empty array without throwing
+    const itemsNoKey = await collectJiqizhixin(10, '');
+    assert.deepEqual(itemsNoKey, []);
+
+    // 2. 401 Unauthorized returns empty array gracefully
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => ({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: 'Missing X-API-Key header', status_code: 401 }),
+      } as any);
+
+      const items401 = await collectJiqizhixin(10, 'invalid-key');
+      assert.deepEqual(items401, []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  await runTest('Accurate category inference for Chinese AI news from Jiqizhixin', () => {
+    const testCases: Array<{ title: string; summary: string; expected: string }> = [
+      {
+        title: '阿里搞了个免费报志愿Agent，40万AI考生提前把坑踩完了',
+        summary: '面向志愿填报场景的智能助手实践',
+        expected: 'AI Agent',
+      },
+      {
+        title: 'DeepSeek 新一代开源架构技术全景深度评测',
+        summary: '在数学与代码基准上的评测结果',
+        expected: 'LLM',
+      },
+      {
+        title: '机器之心评测：新一代多模态 video 生成模型实战',
+        summary: '视觉与音频统一生成架构深度解析',
+        expected: 'Multimodal',
+      },
+      {
+        title: '边缘端低延迟 inference 推理加速引擎新突破',
+        summary: '面向大规模高并发系统的系统优化',
+        expected: 'AI Infra',
+      },
+      {
+        title: '某跨国AI创业公司获得千万美元种子轮融资',
+        summary: '行业发展最新商业动向汇总',
+        expected: 'AI Industry',
+      },
+    ];
+
+    for (const { title, summary, expected } of testCases) {
+      const item: TrendSourceItem = {
+        id: 'test_zh',
+        title,
+        url: 'https://www.jiqizhixin.com/articles/test',
+        summary,
+      };
+      assert.equal(inferCategory(item), expected, `Failed inferring category for title: "${title}"`);
+    }
+  });
+
+  await runTest('Dynamic quota redistribution across 4 data sources when one source is empty', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      // Mock HN returning 10 items, DevTo returning 10 items, Jiqizhixin returning 0 items
+      globalThis.fetch = async (input: any) => {
+        const url = String(input);
+        if (url.includes('topstories')) {
+          return { ok: true, json: async () => [1, 2, 3, 4, 5] } as any;
+        }
+        if (url.includes('firebaseio.com/v0/item')) {
+          const id = url.match(/item\/(\d+)/)?.[1] || '1';
+          return {
+            ok: true,
+            json: async () => ({
+              type: 'story',
+              title: `OpenAI LLM breakthrough update ${id}`,
+              url: `https://news.ycombinator.com/item?id=${id}`,
+              time: 1780000000,
+              score: 100,
+            }),
+          } as any;
+        }
+        if (url.includes('dev.to/api/articles')) {
+          return {
+            ok: true,
+            json: async () => [
+              { id: 'dev1', title: 'Building LLM agents with TypeScript', url: 'https://dev.to/1' },
+              { id: 'dev2', title: 'State of modern AI models in 2026', url: 'https://dev.to/2' },
+              { id: 'dev3', title: 'How to deploy AI models on edge', url: 'https://dev.to/3' },
+              { id: 'dev4', title: 'Evaluating multi-agent collaboration with MCP', url: 'https://dev.to/4' },
+              { id: 'dev5', title: 'Fine-tuning open source LLMs', url: 'https://dev.to/5' },
+            ],
+          } as any;
+        }
+        if (url.includes('parse.bot')) {
+          // Jiqizhixin empty (e.g. key expired or empty response)
+          return { ok: true, json: async () => ({ status: 'success', data: { success: true, articles: [] } }) } as any;
+        }
+        return { ok: false, status: 404 } as any;
+      };
+
+      // Request limit = 8 with 4 sources
+      const items = await collectSources(['hackernews', 'devto', 'jiqizhixin'], 8, null, { PARSE_API_KEY: 'test' });
+      // Total collected should reach 8 through redistribution even with jiqizhixin empty
+      assert.equal(items.length, 8);
+      const sourcesPresent = new Set(items.map(i => i.source));
+      assert.ok(sourcesPresent.has('Hacker News'));
+      assert.ok(sourcesPresent.has('Dev.to'));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 }
 

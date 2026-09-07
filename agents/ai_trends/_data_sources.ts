@@ -1,6 +1,36 @@
 import type { TrendSourceItem } from './_pipeline_types.js';
 import { AI_KEYWORDS, CATEGORY_KEYWORDS, createKeywordMatcher, extractScript } from './_keyword.js';
 
+/**
+ * Web 网页爬取目标配置结构
+ */
+export interface WebSourceConfig {
+  /** 数据源名称标识（如 '36kr', 'HelloGitHub'） */
+  source: string;
+  /** 目标网页 URL */
+  url: string;
+  /** 抓取方式：'browser' (无头浏览器渲染，适用于 SPA/动态加载) 或 'curl' (适用于静态 SSR 页面) */
+  method: 'browser' | 'curl';
+  /** 网页 DOM 提取脚本（在浏览器环境内执行，需返回符合规范的 JSON 字符串） */
+  extractScript?: string;
+}
+
+export const DEFAULT_WEB_SOURCES: WebSourceConfig[] = [
+  {
+    source: '36kr',
+    url: 'https://36kr.com/information/AI/',
+    method: 'browser',
+    extractScript,
+  },
+  // 示例：新增其他数据源
+  // {
+  //   source: 'HelloGitHub',
+  //   url: 'https://hellogithub.com/',
+  //   method: 'browser',
+  //   extractScript: `...`,
+  // },
+];
+
 // return current iso time string
 function nowIso(): string {
   return new Date().toISOString();
@@ -155,22 +185,103 @@ export async function collectDevto(limit = 20): Promise<TrendSourceItem[]> {
   }
 }
 
-// ── Sandbox browser: scrape JS-rendered pages ──
+// ── Jiqizhixin (机器之心): Parse.bot API ──
 
-/** Default web sources that require sandbox to fetch */
-// define default web sources array
-const DEFAULT_WEB_SOURCES = [
-  {
-// target 36kr ai news
-    url: 'https://36kr.com/information/AI/',
-    source: '36kr',
-    // url: 'https://hellogithub.com/',
-    // source: 'GitHub',
-// specify method and extraction script
-    method: 'browser' as const,
-    extractScript,
-  },
-];
+interface ParseJiqizhixinArticle {
+  id?: string;
+  slug?: string;
+  title?: string;
+  author?: string | { id?: string; name?: string; avatar_url?: string };
+  source?: string;
+  content?: string;
+  tagList?: string[];
+  category?: string;
+  publishedAt?: string;
+  coverImageUrl?: string;
+  url?: string;
+}
+
+interface ParseApiResponse {
+  status?: string;
+  data?: {
+    success?: boolean;
+    articles?: ParseJiqizhixinArticle[];
+    totalCount?: number;
+  } | ParseJiqizhixinArticle[];
+  articles?: ParseJiqizhixinArticle[];
+}
+
+/**
+ * Fetch AI articles from Jiqizhixin (机器之心) via Parse.bot API.
+ * Marketplace URL: https://parse.bot/marketplace/87f4fa6b-8efb-4400-9185-50e0b0d39cdb/jiqizhixin-com-api
+ * Scraper ID: c303912a-7465-4e9e-bd4c-64c646e0caea
+ */
+export async function collectJiqizhixin(
+  limit = 20,
+  apiKey?: string,
+): Promise<TrendSourceItem[]> {
+  const resolvedKey = apiKey || process.env.PARSE_API_KEY || process.env.JIQIZHIXIN_API_KEY;
+  if (!resolvedKey) {
+    console.warn('[jiqizhixin] PARSE_API_KEY not configured. To enable Parse.bot 机器之心 API, please set PARSE_API_KEY in environment variables.');
+    return [];
+  }
+
+  const endpoint = `https://api.parse.bot/scraper/c303912a-7465-4e9e-bd4c-64c646e0caea/get_article_list?per=${Math.min(Math.max(limit, 1), 50)}&page=1&sort=time`;
+
+  try {
+    const res = await fetch(endpoint, {
+      headers: {
+        'User-Agent': 'EdgeOne-Agent-AI-Trends-Node/1.0',
+        'X-API-Key': resolvedKey,
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        console.warn(`[jiqizhixin] Parse.bot API key unauthorized (401). Please check PARSE_API_KEY.`);
+      } else {
+        console.warn(`[jiqizhixin] Parse.bot API error: HTTP ${res.status}`);
+      }
+      return [];
+    }
+
+    const data = await res.json() as ParseApiResponse;
+    const rawArticles: ParseJiqizhixinArticle[] = Array.isArray(data?.data)
+      ? data.data
+      : (data?.data?.articles ?? data?.articles ?? []);
+
+    return rawArticles.slice(0, limit).map(article => {
+      const title = cleanText(article.title) || 'Untitled';
+      const slug = article.slug || article.id || '';
+      const url = slug
+        ? `https://www.jiqizhixin.com/articles/${slug}`
+        : (typeof article.url === 'string' && article.url.startsWith('http') ? article.url : 'https://www.jiqizhixin.com');
+
+      let publishedAt = nowIso();
+      if (article.publishedAt) {
+        const parsed = new Date(article.publishedAt);
+        if (!isNaN(parsed.getTime())) {
+          publishedAt = parsed.toISOString();
+        }
+      }
+
+      return {
+        id: `jiqizhixin_${slug || Buffer.from(url).toString('base64url').slice(0, 16)}`,
+        source: '机器之心',
+        title,
+        url,
+        score: 0,
+        publishedAt,
+        summary: typeof article.content === 'string' ? cleanText(article.content) : '',
+      } satisfies TrendSourceItem;
+    }).filter(item => Boolean(item.title));
+  } catch (err: any) {
+    console.warn(`[jiqizhixin] failed to fetch from Parse.bot:`, err?.message || err);
+    return [];
+  }
+}
+
+// ── Sandbox browser: scrape JS-rendered pages ──
 
 /**
  * Collect items from web pages via sandbox capabilities.
@@ -181,7 +292,7 @@ const DEFAULT_WEB_SOURCES = [
 // collect data using sandbox browser
 export async function collectFromWeb(
   sandbox: unknown,
-  webSources: typeof DEFAULT_WEB_SOURCES = DEFAULT_WEB_SOURCES,
+  webSources: WebSourceConfig[] = DEFAULT_WEB_SOURCES,
   limit = 10,
 ): Promise<TrendSourceItem[]> {
 // return empty if no sandbox
@@ -288,36 +399,64 @@ export async function collectFromWeb(
 
 // orchestrate data collection from all sources
 export async function collectSources(
-  sources: string[] = ['hackernews', 'devto'],
+  sources: string[] = ['hackernews', 'devto', 'web', 'jiqizhixin'],
   limit = 30,
   sandbox?: unknown,
+  env?: Record<string, string | undefined>,
 ): Promise<TrendSourceItem[]> {
+  const parseApiKey = env?.PARSE_API_KEY || process.env.PARSE_API_KEY || env?.JIQIZHIXIN_API_KEY || process.env.JIQIZHIXIN_API_KEY;
+
   // fetch data from sources concurrently
   const batches = await Promise.all([
     sources.includes('hackernews') ? collectHackerNews(40) : Promise.resolve([]),
     sources.includes('devto') ? collectDevto(25) : Promise.resolve([]),
     sources.includes('web') ? collectFromWeb(sandbox ?? null, DEFAULT_WEB_SOURCES, 25) : Promise.resolve([]),
+    sources.includes('jiqizhixin') ? collectJiqizhixin(25, parseApiKey) : Promise.resolve([]),
   ]);
 
   // apply filters to all items through AI keywords uniformly
-  const [hnItems, devtoItems, webItems] = batches;
+  const [hnItems, devtoItems, webItems, jqzxItems] = batches;
   const filteredHn = filterAiItems(hnItems);
   const filteredDevto = filterAiItems(devtoItems);
   const filteredWeb = filterAiItems(webItems);
+  const filteredJqzx = filterAiItems(jqzxItems);
 
-  console.log(`[sources] after filter — HN: ${filteredHn.length}, DevTo: ${filteredDevto.length}, Web: ${filteredWeb.length}`);
+  console.log(
+    `[sources] after filter — HN: ${filteredHn.length}, DevTo: ${filteredDevto.length}, Web: ${filteredWeb.length}, 机器之心: ${filteredJqzx.length}`
+  );
 
-  // calculate slots per source HN 40% / DevTo 30% / Web 30%
-  const hnSlots = Math.min(filteredHn.length, Math.ceil(limit * 0.4));
-  const devtoSlots = Math.min(filteredDevto.length, Math.ceil(limit * 0.3));
-  const webSlots = Math.min(filteredWeb.length, Math.ceil(limit * 0.3));
+  // calculate target slots per source (HN 30% / DevTo 25% / Web 20% / Jiqizhixin 25%)
+  const hnSlots = Math.min(filteredHn.length, Math.ceil(limit * 0.3));
+  const devtoSlots = Math.min(filteredDevto.length, Math.ceil(limit * 0.25));
+  const webSlots = Math.min(filteredWeb.length, Math.ceil(limit * 0.2));
+  const jqzxSlots = Math.min(filteredJqzx.length, Math.ceil(limit * 0.25));
 
-  // merge selected items, any source has fewer items than its allocation, redistribute
-  const selected = [
+  // initial balanced pick
+  const selected: TrendSourceItem[] = [
     ...filteredHn.slice(0, hnSlots),
     ...filteredDevto.slice(0, devtoSlots),
     ...filteredWeb.slice(0, webSlots),
+    ...filteredJqzx.slice(0, jqzxSlots),
   ];
+
+  // Dynamic redistribution: if total selected items are fewer than limit,
+  // fill from the remaining items of any source that still has unpicked items
+  if (selected.length < limit) {
+    const selectedIds = new Set(selected.map(item => item.id));
+    const remainingPool = [
+      ...filteredJqzx.slice(jqzxSlots),
+      ...filteredWeb.slice(webSlots),
+      ...filteredDevto.slice(devtoSlots),
+      ...filteredHn.slice(hnSlots),
+    ];
+    for (const item of remainingPool) {
+      if (selected.length >= limit) break;
+      if (!selectedIds.has(item.id)) {
+        selectedIds.add(item.id);
+        selected.push(item);
+      }
+    }
+  }
 
   // return final list bounded by limit
   return selected.slice(0, limit);

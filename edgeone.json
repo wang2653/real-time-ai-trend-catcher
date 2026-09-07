@@ -21,7 +21,7 @@
       "payload": {
         "_schedule": true,
         "trigger": "schedule",
-        "sources": ["hackernews", "devto", "web"],
+        "sources": ["hackernews", "devto", "web", "jiqizhixin"],
         "limit": 30
       },
       "timeout": 1200

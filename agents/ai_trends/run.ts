@@ -28,7 +28,7 @@ export async function onRequest(context: any): Promise<Response> {
   // determine trigger type based on _schedule flag or body
   const trigger = body._schedule ? 'schedule' : body.trigger || 'manual';
   // define sources, using the provided array
-  const sources = Array.isArray(body.sources) ? body.sources : ['hackernews', 'devto', 'web'];
+  const sources = Array.isArray(body.sources) ? body.sources : ['hackernews', 'devto', 'web', 'jiqizhixin'];
   // parse limit parameter from the body, defaulting to 30
   const limit = Number(body.limit || 30);
   // record timestamp
@@ -70,10 +70,11 @@ export async function onRequest(context: any): Promise<Response> {
         emit({ stage: 'fetch', status: 'running' });
         // extract sandbox environment from context, default to null
         const sandbox = context?.sandbox ?? null;
+        const env = getEnv(context);
         // log sandbox status and sources being used, with spaced brackets
         console.log(`[ run ] sandbox available: ${!!sandbox}, sources: ${JSON.stringify(sources)}`);
         // await collection of candidates from sources
-        const candidates = await collectSources(sources, limit, sandbox);
+        const candidates = await collectSources(sources, limit, sandbox, env);
         // reduce candidates to count items per source, with spaced brackets
         const sourceCounts = candidates.reduce((acc, i) => { const k = i.source || 'unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {} as Record<string, number>);
         // log candidate breakdown by source, with spaced brackets

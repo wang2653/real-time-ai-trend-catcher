@@ -36,6 +36,7 @@ export const AI_KEYWORDS = [
   'ai agent',
   'ai应用',
   'ai工具',
+  '机器之心',
 ];
 
 export const CATEGORY_KEYWORDS: Record<string, string[]> = {

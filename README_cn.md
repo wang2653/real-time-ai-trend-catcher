@@ -1,7 +1,7 @@
 # Real-Time AI Trend Catcher
 
 ## 项目简介
-本项目是一个自动化的多智能体（Multi-Agent）系统，实现了从多数据源拉取数据、智能筛选策展、趋势分析到最终 Markdown 报告渲染及 PDF 导出的全自动化工作流。系统采用 Server-Sent Events (SSE) 流式传输技术，在前端具象化展示智能体的运行状态与耗时，旨在为用户提供快速、高质量且透明的行业趋势洞察，体现了 AI Agent 赋能信息检索与内容生产的商业价值。
+本项目是一个自动化的多智能体（Multi-Agent）系统，实现了从多数据源（HackerNews、Dev.to、36kr Web 爬虫、机器之心 Jiqizhixin Parse.bot API）拉取数据、智能筛选策展、趋势分析到最终 Markdown 报告渲染及 PDF 导出的全自动化工作流。系统采用 Server-Sent Events (SSE) 流式传输技术，在前端具象化展示智能体的运行状态与耗时，旨在为用户提供快速、高质量且透明的行业趋势洞察，体现了 AI Agent 赋能信息检索与内容生产的商业价值。
 
 ## 核心特性
 - **多智能体协同与编排**：系统化编排了 Curator（内容策展）、Analyst（深度分析）、Summarizer（摘要提炼）与 Writer（报告撰写）等专业角色，形成流水线式的 Agent 工作流。
@@ -13,7 +13,7 @@
 ## 系统架构
 
 ```text
-[多数据源] (HackerNews, DevTo, Web) 
+[多数据源] (HackerNews, DevTo, 36kr Web, 机器之心 - Parse.bot API) 
       │
       ▼
 [数据拉取与聚合] --> [记忆存储 Memory Store (上下文与历史)]
