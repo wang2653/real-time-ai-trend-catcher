@@ -17,6 +17,8 @@
     {
       "name": "ai-trends-periodic",
       "cron": "0 9 * * *",
+      "timezone": "Asia/Shanghai",
+      "method": "POST",
       "path": "/ai_trends/run",
       "payload": {
         "_schedule": true,

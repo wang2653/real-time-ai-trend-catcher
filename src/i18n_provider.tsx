@@ -114,7 +114,7 @@ const translations = {
     eyebrow: 'Enterprise AI Intelligence',
     title: 'AI Daily News Monitor',
     subtitle: 'Crawl, filter, and aggregate news from AI industry automatically into traceable trend reports.',
-    scheduleHint: 'Scheduled Task: Daily at UTC+10',
+    scheduleHint: 'Scheduled Task: Daily at 09:00 (UTC+8)',
     generate: 'Execute',
     generating: 'Processing...',
     stop: 'Terminate',
